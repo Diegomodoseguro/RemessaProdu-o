@@ -46,11 +46,11 @@ exports.handler = async (event, context) => {
 function calculateFinalPrice(basePrice, ages, commissionRate = 0) {
     let total = 0;
     
-    // 1. Aplica o Fator de Comissão (Markup) sobre o preço base unitário
-    // Ex: Base 100 + 20% = 120.
+    // 1. Aplica a COMISSÃO sobre o preço base
+    // Exemplo: Se base é 100 e comissão é 20%, vira 120.
     const priceWithCommission = basePrice * (1 + (commissionRate / 100));
 
-    // 2. Multiplica pelos passageiros aplicando agravo de idade
+    // 2. Aplica o AGRAVO DE IDADE sobre o preço com comissão
     ages.forEach(age => {
         const idade = parseInt(age);
         let multiplier = 1.0; 
@@ -66,20 +66,19 @@ function calculateFinalPrice(basePrice, ages, commissionRate = 0) {
 // --- 1. BUSCA DE PLANOS ---
 async function handleGetPlans({ destino, dias, idades, planType }) {
     try {
-        // 1. Buscar a taxa de comissão no Supabase
+        // AQUI ESTÁ A MÁGICA: Busca a comissão no banco antes de calcular
         let commissionRate = 0;
         if (supabase) {
             const { data } = await supabase.from('app_config').select('value').eq('key', 'commission_rate').single();
             if (data && data.value) commissionRate = parseFloat(data.value);
         }
 
-        // 2. Chamada Coris (Mantida para validação)
+        // Validação de conexão com Coris (apenas check)
         try {
             const xmlBody = `<?xml version="1.0" encoding="utf-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tem="http://tempuri.org/"><soapenv:Header/><soapenv:Body><tem:BuscarPlanosNovosV13><tem:strXML><![CDATA[<execute><param name='login' type='varchar' value='${CORIS_CONFIG.login}' /><param name='senha' type='varchar' value='${CORIS_CONFIG.senha}' /><param name='destino' type='int' value='${destino}' /><param name='vigencia' type='int' value='${dias}' /><param name='home' type='int' value='0' /><param name='multi' type='int' value='0' /></execute>]]></tem:strXML></tem:BuscarPlanosNovosV13></soapenv:Body></soapenv:Envelope>`;
             await fetch(CORIS_CONFIG.url, { method: 'POST', headers: { 'Content-Type': 'text/xml; charset=utf-8' }, body: xmlBody });
         } catch (e) { console.log("Aviso Coris:", e.message); }
 
-        // 3. Definição dos Planos Base
         let plans = [];
         if (planType === 'vip') {
             plans = [
@@ -101,10 +100,10 @@ async function handleGetPlans({ destino, dias, idades, planType }) {
             ];
         }
 
-        // 4. Aplica a Comissão no Preço Final
+        // Calcula preço final com a comissão incluída
         const plansWithPrice = plans.map(p => ({
             ...p,
-            totalPrice: calculateFinalPrice(p.basePrice, idades, commissionRate), // Passa a taxa aqui
+            totalPrice: calculateFinalPrice(p.basePrice, idades, commissionRate),
             covid: 'USD 10.000'
         })).filter(p => p.totalPrice > 0);
 
