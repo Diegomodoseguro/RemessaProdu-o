@@ -1,0 +1,8 @@
+[build]
+  command = "npm install"
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/backend"
+  status = 200
