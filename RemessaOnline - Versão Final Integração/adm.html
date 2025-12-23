@@ -6,6 +6,7 @@
     <title>Admin | Seguro Remessa Online</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔒</text></svg>">
     
+    <!-- Dependências -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -157,11 +158,12 @@
     </div>
 
     <script>
-        // CREDENCIAIS REAIS DO SUPABASE (COPIADAS DO PROMPT)
+        // CONFIGURAÇÃO CORRETA - Usando supabaseClient para evitar conflito com a global 'supabase'
         const supabaseUrl = 'https://nklclnadvlqvultatapb.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rbGNsbmFkdmxxdnVsdGF0YXBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM1OTQ1OTUsImV4cCI6MjA3OTE3MDU5NX0.aRINn2McObJn9N4b3fEG262mR92e_MiP60jX13mtxKw';
         
-        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+        // CORREÇÃO AQUI: Renomeado para supabaseClient
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
         let allLeads = [], funnelChartInstance = null;
 
         function checkLogin() {
@@ -190,7 +192,7 @@
 
         // Lógica da Comissão
         async function loadConfig() {
-            const { data } = await supabase.from('app_config').select('value').eq('key', 'commission_rate').single();
+            const { data } = await supabaseClient.from('app_config').select('value').eq('key', 'commission_rate').single();
             if (data) document.getElementById('commission-rate').value = data.value;
         }
 
@@ -198,7 +200,7 @@
             const rate = document.getElementById('commission-rate').value;
             const feedback = document.getElementById('config-feedback');
             
-            const { error } = await supabase.from('app_config').upsert({ key: 'commission_rate', value: rate });
+            const { error } = await supabaseClient.from('app_config').upsert({ key: 'commission_rate', value: rate });
             
             feedback.classList.remove('hidden', 'text-red-600', 'text-green-600');
             if(error) {
@@ -211,7 +213,7 @@
         }
 
         async function loadData() {
-            const { data, error } = await supabase.from('remessaonlinesioux_leads').select('*').order('created_at', { ascending: false });
+            const { data, error } = await supabaseClient.from('remessaonlinesioux_leads').select('*').order('created_at', { ascending: false });
             if(error) { console.error(error); alert('Erro ao conectar ao banco. Verifique o console.'); return; }
             if(data) { allLeads = data; renderDashboard(); renderLeadsTable(); renderSalesTable(); }
         }
@@ -268,7 +270,7 @@
         
         async function saveLeadChanges() {
             const id = document.getElementById('modal-lead-id').value;
-            await supabase.from('remessaonlinesioux_leads').update({ status: document.getElementById('modal-status').value, chip_esim: document.getElementById('modal-chip').value }).eq('id', id);
+            await supabaseClient.from('remessaonlinesioux_leads').update({ status: document.getElementById('modal-status').value, chip_esim: document.getElementById('modal-chip').value }).eq('id', id);
             closeModal(); loadData();
         }
 
@@ -278,7 +280,7 @@
             if(!currentLead.telefone_usuario) return alert('Cliente sem telefone cadastrado.');
             const phone = '55' + currentLead.telefone_usuario.replace(/\D/g, '');
             const msg = `Olá ${currentLead.nome_usuario.split(' ')[0]}, compra confirmada! Seu chip eSIM: *${chip}*. Apólice enviada por e-mail.`;
-            supabase.from('remessaonlinesioux_leads').update({ status_envio_chip: true }).eq('id', currentLead.id);
+            supabaseClient.from('remessaonlinesioux_leads').update({ status_envio_chip: true }).eq('id', currentLead.id);
             window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
         }
     </script>
