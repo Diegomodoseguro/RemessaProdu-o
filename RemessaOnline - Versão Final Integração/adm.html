@@ -6,7 +6,6 @@
     <title>Admin | Seguro Remessa Online</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔒</text></svg>">
     
-    <!-- Dependências: Tailwind, Supabase, Chart.js (Gráficos), FontAwesome (Ícones) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -19,30 +18,28 @@
         .main-content { margin-left: 260px; padding: 30px; }
         .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
-        .status-cotacao { background: #e0f2fe; color: #0369a1; } /* Azul claro */
-        .status-pago { background: #dcfce7; color: #15803d; } /* Verde */
-        .status-erro { background: #fee2e2; color: #b91c1c; } /* Vermelho */
-        .status-abandonado { background: #f3f4f6; color: #4b5563; } /* Cinza */
+        .status-cotacao { background: #e0f2fe; color: #0369a1; } 
+        .status-pago { background: #dcfce7; color: #15803d; } 
+        .status-erro { background: #fee2e2; color: #b91c1c; } 
+        .status-abandonado { background: #f3f4f6; color: #4b5563; }
         
-        /* Modal */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 50; display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
         .modal-active { display: flex; }
         
-        /* Login Screen */
         #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000733; z-index: 100; display: flex; align-items: center; justify-content: center; }
     </style>
 </head>
 <body>
 
-    <!-- Tela de Login Simples -->
+    <!-- Tela de Login (Apenas Senha) -->
     <div id="login-screen">
         <div class="bg-white p-8 rounded-2xl shadow-2xl w-96 text-center">
             <img src="https://cms-cdn-sae1.remessaonline.com.br/Remessa_Online_Azul_Vertical_Principal_3ebe3d3a8d.svg" class="h-10 mx-auto mb-6">
-            <h2 class="text-xl font-bold mb-4 text-gray-800">Acesso Administrativo</h2>
-            <input type="text" id="admin-user" placeholder="Usuário" class="w-full border p-3 rounded-lg mb-3">
-            <input type="password" id="admin-pass" placeholder="Senha" class="w-full border p-3 rounded-lg mb-6">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">Acesso Restrito</h2>
+            <!-- Usuário removido -->
+            <input type="password" id="admin-pass" placeholder="Senha de Acesso" class="w-full border p-3 rounded-lg mb-6 text-center text-lg">
             <button onclick="checkLogin()" class="w-full bg-[#2244FF] text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition">Entrar</button>
-            <p id="login-error" class="text-red-500 text-sm mt-3 hidden">Credenciais inválidas.</p>
+            <p id="login-error" class="text-red-500 text-sm mt-3 hidden">Senha incorreta.</p>
         </div>
     </div>
 
@@ -54,9 +51,10 @@
                 <span class="font-bold text-lg tracking-wide">Admin Panel</span>
             </div>
             <nav class="mt-6 px-4 space-y-2">
-                <a href="#" onclick="showSection('dashboard')" class="flex items-center gap-3 p-3 rounded-lg bg-blue-900/50 text-white"><i class="fa-solid fa-chart-pie w-5"></i> Dashboard</a>
-                <a href="#" onclick="showSection('leads')" class="flex items-center gap-3 p-3 rounded-lg text-gray-400 hover:bg-white/5 hover:text-white transition"><i class="fa-solid fa-users w-5"></i> CRM & Leads</a>
-                <a href="#" onclick="showSection('vendas')" class="flex items-center gap-3 p-3 rounded-lg text-gray-400 hover:bg-white/5 hover:text-white transition"><i class="fa-solid fa-money-bill-wave w-5"></i> Vendas Confirmadas</a>
+                <a href="#" onclick="showSection('dashboard')" class="flex items-center gap-3 p-3 rounded-lg bg-blue-900/50 text-white nav-item" id="nav-dashboard"><i class="fa-solid fa-chart-pie w-5"></i> Dashboard</a>
+                <a href="#" onclick="showSection('leads')" class="flex items-center gap-3 p-3 rounded-lg text-gray-400 hover:bg-white/5 hover:text-white transition nav-item" id="nav-leads"><i class="fa-solid fa-users w-5"></i> CRM & Leads</a>
+                <a href="#" onclick="showSection('vendas')" class="flex items-center gap-3 p-3 rounded-lg text-gray-400 hover:bg-white/5 hover:text-white transition nav-item" id="nav-vendas"><i class="fa-solid fa-money-bill-wave w-5"></i> Vendas</a>
+                <a href="#" onclick="showSection('config')" class="flex items-center gap-3 p-3 rounded-lg text-gray-400 hover:bg-white/5 hover:text-white transition nav-item" id="nav-config"><i class="fa-solid fa-cog w-5"></i> Configurações</a>
             </nav>
         </div>
         <div class="p-6 border-t border-gray-800">
@@ -67,363 +65,225 @@
     <!-- Main Content -->
     <div class="main-content">
         
-        <!-- HEADER -->
         <div class="flex justify-between items-center mb-8">
             <div>
                 <h1 class="text-2xl font-bold text-gray-800" id="page-title">Visão Geral</h1>
-                <p class="text-gray-500 text-sm">Bem-vindo ao controle da operação.</p>
+                <p class="text-gray-500 text-sm">Controle operacional e financeiro.</p>
             </div>
-            <button onclick="loadData()" class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 shadow-sm transition"><i class="fa-solid fa-sync mr-2"></i> Atualizar Dados</button>
+            <button onclick="loadData()" class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 shadow-sm transition"><i class="fa-solid fa-sync mr-2"></i> Atualizar</button>
         </div>
 
-        <!-- SECTION: DASHBOARD -->
-        <div id="section-dashboard" class="space-y-6">
-            <!-- KPIs -->
+        <!-- DASHBOARD -->
+        <div id="section-dashboard" class="space-y-6 section-content">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div class="card border-l-4 border-blue-500">
-                    <p class="text-gray-500 text-xs font-bold uppercase">Total Leads (Cotações)</p>
+                    <p class="text-gray-500 text-xs font-bold uppercase">Total Leads</p>
                     <h3 class="text-3xl font-bold text-gray-800 mt-1" id="kpi-total">0</h3>
                 </div>
                 <div class="card border-l-4 border-yellow-500">
-                    <p class="text-gray-500 text-xs font-bold uppercase">Carrinhos Abandonados</p>
+                    <p class="text-gray-500 text-xs font-bold uppercase">Abandonados</p>
                     <h3 class="text-3xl font-bold text-gray-800 mt-1" id="kpi-abandoned">0</h3>
                 </div>
                 <div class="card border-l-4 border-green-500">
-                    <p class="text-gray-500 text-xs font-bold uppercase">Vendas Confirmadas</p>
+                    <p class="text-gray-500 text-xs font-bold uppercase">Vendas</p>
                     <h3 class="text-3xl font-bold text-gray-800 mt-1" id="kpi-sales">0</h3>
                 </div>
                 <div class="card border-l-4 border-purple-500">
-                    <p class="text-gray-500 text-xs font-bold uppercase">Receita Estimada (R$)</p>
+                    <p class="text-gray-500 text-xs font-bold uppercase">Receita Total</p>
                     <h3 class="text-3xl font-bold text-gray-800 mt-1" id="kpi-revenue">R$ 0,00</h3>
                 </div>
             </div>
-
-            <!-- Charts -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="card">
-                    <h3 class="font-bold text-gray-700 mb-4">Funil de Vendas</h3>
-                    <canvas id="funnelChart"></canvas>
-                </div>
-                <div class="card">
-                    <h3 class="font-bold text-gray-700 mb-4">Últimas Atividades</h3>
-                    <div id="recent-activity" class="space-y-3 text-sm">
-                        <!-- JS Populate -->
-                        <p class="text-gray-400 text-center py-4">Carregando...</p>
-                    </div>
-                </div>
+                <div class="card"><h3 class="font-bold text-gray-700 mb-4">Funil</h3><canvas id="funnelChart"></canvas></div>
+                <div class="card"><h3 class="font-bold text-gray-700 mb-4">Atividade Recente</h3><div id="recent-activity" class="space-y-3 text-sm"></div></div>
             </div>
         </div>
 
-        <!-- SECTION: LEADS & CRM -->
-        <div id="section-leads" class="hidden space-y-6">
+        <!-- LEADS -->
+        <div id="section-leads" class="hidden space-y-6 section-content">
             <div class="card overflow-hidden">
                 <div class="flex justify-between items-center mb-4 px-2">
-                    <h3 class="font-bold text-lg">Gerenciamento de Leads</h3>
-                    <div class="flex gap-2">
-                        <input type="text" id="search-leads" placeholder="Buscar por nome ou email..." class="border rounded-lg px-3 py-1 text-sm w-64">
-                    </div>
+                    <h3 class="font-bold text-lg">Leads</h3>
+                    <input type="text" id="search-leads" placeholder="Buscar..." class="border rounded-lg px-3 py-1 text-sm w-64">
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-gray-50 text-gray-600 text-xs uppercase border-b">
-                                <th class="p-4">Data</th>
-                                <th class="p-4">Cliente</th>
-                                <th class="p-4">Destino / Dias</th>
-                                <th class="p-4">Motivo</th>
-                                <th class="p-4">Status</th>
-                                <th class="p-4 text-center">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="leads-table-body" class="text-sm text-gray-700 divide-y">
-                            <!-- JS Populate -->
-                        </tbody>
-                    </table>
+                    <table class="w-full text-left border-collapse"><thead class="bg-gray-50 text-gray-600 text-xs uppercase"><tr class="border-b"><th class="p-4">Data</th><th class="p-4">Cliente</th><th class="p-4">Detalhes</th><th class="p-4">Status</th><th class="p-4">Ação</th></tr></thead><tbody id="leads-table-body" class="text-sm text-gray-700 divide-y"></tbody></table>
                 </div>
             </div>
         </div>
 
-        <!-- SECTION: VENDAS -->
-        <div id="section-vendas" class="hidden space-y-6">
+        <!-- VENDAS -->
+        <div id="section-vendas" class="hidden space-y-6 section-content">
             <div class="card">
-                <h3 class="font-bold text-lg mb-4">Emissão e Entrega de Chips</h3>
-                <p class="text-sm text-gray-500 mb-6">Lista de clientes com pagamento aprovado aguardando envio do Chip/Apólice.</p>
+                <h3 class="font-bold text-lg mb-4">Entrega de Chips</h3>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-gray-50 text-gray-600 text-xs uppercase border-b">
-                                <th class="p-4">Pedido ID</th>
-                                <th class="p-4">Cliente / WhatsApp</th>
-                                <th class="p-4">Plano</th>
-                                <th class="p-4">Chip Enviado?</th>
-                                <th class="p-4 text-center">Ação Rápida</th>
-                            </tr>
-                        </thead>
-                        <tbody id="sales-table-body" class="text-sm text-gray-700 divide-y">
-                            <!-- JS Populate -->
-                        </tbody>
-                    </table>
+                    <table class="w-full text-left border-collapse"><thead class="bg-gray-50 text-gray-600 text-xs uppercase"><tr class="border-b"><th class="p-4">ID</th><th class="p-4">Cliente</th><th class="p-4">Plano</th><th class="p-4">Status Chip</th><th class="p-4">Ação</th></tr></thead><tbody id="sales-table-body" class="text-sm text-gray-700 divide-y"></tbody></table>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONFIGURAÇÕES (NOVO) -->
+        <div id="section-config" class="hidden space-y-6 section-content">
+            <div class="card max-w-2xl mx-auto">
+                <h3 class="font-bold text-lg mb-6 text-gray-800 flex items-center gap-2"><i class="fa-solid fa-tags"></i> Precificação e Margem</h3>
+                
+                <div class="bg-blue-50 p-6 rounded-xl border border-blue-100">
+                    <label class="block text-sm font-bold text-blue-900 mb-2">Comissão Adicional (%)</label>
+                    <p class="text-xs text-blue-700 mb-4">Este percentual será somado ao preço base da Coris para formar o preço final do cliente.</p>
+                    
+                    <div class="flex items-center gap-4">
+                        <div class="relative w-40">
+                            <input type="number" id="commission-rate" class="w-full text-2xl font-bold p-3 border border-blue-300 rounded-lg text-center text-blue-900 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="0">
+                            <span class="absolute right-4 top-4 text-blue-400 font-bold">%</span>
+                        </div>
+                        <button onclick="saveCommission()" class="bg-blue-600 text-white px-6 py-4 rounded-lg font-bold hover:bg-blue-700 transition flex items-center gap-2 shadow-lg">
+                            <i class="fa-solid fa-save"></i> Salvar Comissão
+                        </button>
+                    </div>
+                    <p id="config-feedback" class="text-sm font-medium mt-3 hidden"></p>
+                </div>
+
+                <div class="mt-8 p-4 border-t border-gray-100 text-sm text-gray-500">
+                    <p><strong>Exemplo:</strong> Se o plano custa R$ 100,00 e a comissão for 20%, o cliente pagará R$ 120,00.</p>
                 </div>
             </div>
         </div>
 
     </div>
 
-    <!-- MODAL DE EDIÇÃO/AÇÃO -->
+    <!-- MODAL -->
     <div id="action-modal" class="modal-overlay">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-on-scroll">
-            <div class="bg-[#2244FF] p-4 flex justify-between items-center">
-                <h3 class="text-white font-bold" id="modal-title">Detalhes do Lead</h3>
-                <button onclick="closeModal()" class="text-white hover:text-gray-200"><i class="fa-solid fa-times"></i></button>
-            </div>
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
+            <div class="bg-[#2244FF] p-4 flex justify-between items-center"><h3 class="text-white font-bold">Detalhes</h3><button onclick="closeModal()" class="text-white"><i class="fa-solid fa-times"></i></button></div>
             <div class="p-6 space-y-4">
                 <input type="hidden" id="modal-lead-id">
-                
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-1">Nome</label>
-                        <p id="modal-name" class="font-medium text-gray-800">-</p>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-1">Telefone/Zap</label>
-                        <p id="modal-phone" class="font-medium text-gray-800">-</p>
-                    </div>
-                </div>
-
-                <div class="border-t pt-4">
-                    <label class="block text-sm font-bold text-gray-700 mb-2">Atualizar Status</label>
-                    <select id="modal-status" class="w-full border rounded-lg p-2 text-sm bg-gray-50">
-                        <option value="cotacao_iniciada">Cotação Iniciada (Carrinho Abandonado)</option>
-                        <option value="pagamento_pendente">Pagamento Pendente</option>
-                        <option value="pagamento_processado">Pago (Aguardando Emissão)</option>
-                        <option value="emitido">Concluído (Apólice Emitida)</option>
-                        <option value="cancelado">Cancelado</option>
-                    </select>
-                </div>
-
-                <div class="bg-green-50 p-4 rounded-lg border border-green-200">
-                    <label class="block text-sm font-bold text-green-800 mb-2"><i class="fa-brands fa-whatsapp"></i> Enviar Chip eSIM</label>
-                    <p class="text-xs text-green-600 mb-2">Digite o código do chip para gerar a mensagem automática.</p>
-                    <div class="flex gap-2">
-                        <input type="text" id="modal-chip" placeholder="Ex: eSIM-1234-5678" class="flex-1 border border-green-300 rounded-lg p-2 text-sm">
-                        <button onclick="sendWhatsApp()" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-700">Enviar</button>
-                    </div>
-                </div>
-
-                <div class="flex justify-end pt-2">
-                    <button onclick="saveLeadChanges()" class="bg-[#2244FF] text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition w-full">Salvar Alterações</button>
-                </div>
+                <div class="grid grid-cols-2 gap-4"><div><label class="text-xs font-bold text-gray-500">Nome</label><p id="modal-name">-</p></div><div><label class="text-xs font-bold text-gray-500">Telefone</label><p id="modal-phone">-</p></div></div>
+                <div class="border-t pt-4"><label class="block text-sm font-bold mb-2">Status</label><select id="modal-status" class="w-full border rounded p-2"><option value="cotacao_iniciada">Abandonado</option><option value="pagamento_processado">Pago</option><option value="emitido">Concluído</option></select></div>
+                <div class="bg-green-50 p-4 rounded border border-green-200"><label class="block text-sm font-bold text-green-800 mb-2">Enviar Chip</label><div class="flex gap-2"><input type="text" id="modal-chip" class="flex-1 border p-2 rounded text-sm" placeholder="Código eSIM"><button onclick="sendWhatsApp()" class="bg-green-600 text-white px-4 py-2 rounded text-sm font-bold">Zap</button></div></div>
+                <div class="flex justify-end pt-2"><button onclick="saveLeadChanges()" class="bg-[#2244FF] text-white px-6 py-2 rounded font-bold w-full">Salvar</button></div>
             </div>
         </div>
     </div>
 
     <script>
-        // CONFIGURAÇÃO SUPABASE (Substitua pela sua URL/KEY do arquivo index.html)
         const supabaseUrl = 'https://ujgnpbrreosmiujkedsa.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqZ25wYnJyZW9zbWl1amtlZHNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE4ODU3NDEsImV4cCI6MjA2NzQ2MTc0MX0.QY2xuq4lpZkI3Hi6gwRLi-0VUxuGoWS_LzfGtIJwRzE';
         const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+        let allLeads = [], funnelChartInstance = null;
 
-        let allLeads = [];
-        let funnelChartInstance = null;
-
-        // AUTH SIMPLES
         function checkLogin() {
-            const u = document.getElementById('admin-user').value;
             const p = document.getElementById('admin-pass').value;
-            if(u === 'admin' && p === 'remessa2025') {
+            if(p === 'ModoSeguro2025') {
                 document.getElementById('login-screen').style.display = 'none';
                 loadData();
+                loadConfig(); // Carrega a comissão
             } else {
                 document.getElementById('login-error').classList.remove('hidden');
             }
         }
         function logout() { location.reload(); }
 
-        // NAVEGAÇÃO
         function showSection(id) {
-            ['dashboard', 'leads', 'vendas'].forEach(s => document.getElementById(`section-${s}`).classList.add('hidden'));
+            document.querySelectorAll('.section-content').forEach(d => d.classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(n => { n.classList.remove('bg-blue-900/50', 'text-white'); n.classList.add('text-gray-400'); });
+            
             document.getElementById(`section-${id}`).classList.remove('hidden');
-            const titles = { 'dashboard': 'Visão Geral', 'leads': 'CRM de Leads', 'vendas': 'Gestão de Vendas' };
+            document.getElementById(`nav-${id}`).classList.add('bg-blue-900/50', 'text-white');
+            document.getElementById(`nav-${id}`).classList.remove('text-gray-400');
+            
+            const titles = { 'dashboard': 'Visão Geral', 'leads': 'CRM', 'vendas': 'Vendas', 'config': 'Configurações' };
             document.getElementById('page-title').innerText = titles[id];
         }
 
-        // CARREGAMENTO DE DADOS
-        async function loadData() {
-            // Buscar dados do Supabase
-            const { data, error } = await supabase
-                .from('remessaonlinesioux_leads')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (error) { alert('Erro ao carregar dados: ' + error.message); return; }
-            
-            allLeads = data;
-            renderDashboard();
-            renderLeadsTable();
-            renderSalesTable();
+        // Lógica da Comissão
+        async function loadConfig() {
+            const { data } = await supabase.from('app_config').select('value').eq('key', 'commission_rate').single();
+            if (data) document.getElementById('commission-rate').value = data.value;
         }
 
-        // RENDERIZAR DASHBOARD
+        async function saveCommission() {
+            const rate = document.getElementById('commission-rate').value;
+            const feedback = document.getElementById('config-feedback');
+            
+            const { error } = await supabase.from('app_config').upsert({ key: 'commission_rate', value: rate });
+            
+            feedback.classList.remove('hidden', 'text-red-600', 'text-green-600');
+            if(error) {
+                feedback.innerText = "Erro ao salvar: " + error.message;
+                feedback.classList.add('text-red-600');
+            } else {
+                feedback.innerText = "Comissão atualizada com sucesso! Novos preços entrarão em vigor imediatamente.";
+                feedback.classList.add('text-green-600');
+            }
+        }
+
+        async function loadData() {
+            const { data } = await supabase.from('remessaonlinesioux_leads').select('*').order('created_at', { ascending: false });
+            if(data) { allLeads = data; renderDashboard(); renderLeadsTable(); renderSalesTable(); }
+        }
+
         function renderDashboard() {
             const total = allLeads.length;
-            const abandoned = allLeads.filter(l => l.status === 'cotacao_iniciada').length;
             const sales = allLeads.filter(l => ['pagamento_processado', 'emitido'].includes(l.status)).length;
             const revenue = allLeads.reduce((acc, curr) => acc + (curr.valor_total || 0), 0);
-
             document.getElementById('kpi-total').innerText = total;
-            document.getElementById('kpi-abandoned').innerText = abandoned;
+            document.getElementById('kpi-abandoned').innerText = allLeads.filter(l => l.status === 'cotacao_iniciada').length;
             document.getElementById('kpi-sales').innerText = sales;
             document.getElementById('kpi-revenue').innerText = revenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-
-            // Renderizar Gráfico
+            
             const ctx = document.getElementById('funnelChart').getContext('2d');
             if (funnelChartInstance) funnelChartInstance.destroy();
-            
             funnelChartInstance = new Chart(ctx, {
                 type: 'bar',
-                data: {
-                    labels: ['Cotações', 'Pagamento Pendente', 'Vendas Fechadas'],
-                    datasets: [{
-                        label: 'Funil de Conversão',
-                        data: [total, allLeads.filter(l => l.status === 'pagamento_pendente').length, sales],
-                        backgroundColor: ['#3b82f6', '#f59e0b', '#22c55e']
-                    }]
-                },
+                data: { labels: ['Cotações', 'Vendas'], datasets: [{ label: 'Conversão', data: [total, sales], backgroundColor: ['#3b82f6', '#22c55e'] }] },
                 options: { responsive: true, scales: { y: { beginAtZero: true } } }
             });
-
-            // Atividade Recente
-            const recentContainer = document.getElementById('recent-activity');
-            recentContainer.innerHTML = '';
-            allLeads.slice(0, 5).forEach(lead => {
-                const date = new Date(lead.created_at).toLocaleDateString('pt-BR');
-                const action = lead.status === 'emitido' ? 'comprou' : 'iniciou cotação';
-                recentContainer.innerHTML += `
-                    <div class="flex items-center gap-3 p-2 bg-gray-50 rounded">
-                        <div class="w-2 h-2 rounded-full ${lead.status === 'emitido' ? 'bg-green-500' : 'bg-blue-500'}"></div>
-                        <p class="text-gray-600 flex-1"><strong>${lead.nome_usuario || 'Visitante'}</strong> ${action}.</p>
-                        <span class="text-xs text-gray-400">${date}</span>
-                    </div>`;
-            });
-        }
-
-        // RENDERIZAR TABELA DE LEADS
-        function renderLeadsTable() {
-            const tbody = document.getElementById('leads-table-body');
-            tbody.innerHTML = '';
             
-            allLeads.forEach(lead => {
-                const date = new Date(lead.created_at).toLocaleDateString('pt-BR');
-                let statusClass = 'status-abandonado';
-                let statusLabel = 'Abandonado';
+            const act = document.getElementById('recent-activity'); act.innerHTML = '';
+            allLeads.slice(0, 5).forEach(l => act.innerHTML += `<div class="p-2 bg-gray-50 rounded text-gray-600"><strong>${l.nome_usuario}</strong> - ${l.status}</div>`);
+        }
 
-                if (lead.status === 'pagamento_processado') { statusClass = 'status-pago'; statusLabel = 'Pago (Processar)'; }
-                else if (lead.status === 'emitido') { statusClass = 'status-pago'; statusLabel = 'Concluído'; }
-                else if (lead.status === 'cotacao_iniciada') { statusClass = 'status-cotacao'; statusLabel = 'Em Cotação'; }
-
-                tbody.innerHTML += `
-                    <tr class="hover:bg-gray-50 border-b">
-                        <td class="p-4 text-gray-500">${date}</td>
-                        <td class="p-4">
-                            <p class="font-bold text-gray-800">${lead.nome_usuario || 'Não informado'}</p>
-                            <p class="text-xs text-gray-500">${lead.email_usuario || '-'}</p>
-                        </td>
-                        <td class="p-4">
-                            <p class="text-gray-700">${lead.destino_cotacao == 1 ? 'América Latina' : (lead.destino_cotacao == 5 ? 'EUA' : 'Mundo')}</p>
-                            <p class="text-xs text-gray-500">${lead.dias_cotacao || 0} dias</p>
-                        </td>
-                        <td class="p-4 text-gray-600">${lead.motivo_viagem || '-'}</td>
-                        <td class="p-4"><span class="status-badge ${statusClass}">${statusLabel}</span></td>
-                        <td class="p-4 text-center">
-                            <button onclick="openModal('${lead.id}')" class="text-blue-600 hover:bg-blue-100 p-2 rounded transition"><i class="fa-solid fa-edit"></i></button>
-                        </td>
-                    </tr>`;
+        function renderLeadsTable() {
+            const tb = document.getElementById('leads-table-body'); tb.innerHTML = '';
+            allLeads.forEach(l => {
+                let st = 'status-abandonado', txt = 'Abandonado';
+                if(l.status === 'pagamento_processado') { st = 'status-pago'; txt = 'Pago'; }
+                else if(l.status === 'emitido') { st = 'status-pago'; txt = 'Emitido'; }
+                tb.innerHTML += `<tr class="hover:bg-gray-50 border-b"><td class="p-4">${new Date(l.created_at).toLocaleDateString()}</td><td class="p-4"><b>${l.nome_usuario}</b><br><span class="text-xs">${l.email_usuario}</span></td><td class="p-4 text-xs">${l.destino_cotacao} / ${l.motivo_viagem}</td><td class="p-4"><span class="status-badge ${st}">${txt}</span></td><td class="p-4"><button onclick="openModal('${l.id}')" class="text-blue-600"><i class="fa-solid fa-edit"></i></button></td></tr>`;
             });
         }
 
-        // RENDERIZAR TABELA DE VENDAS
         function renderSalesTable() {
-            const tbody = document.getElementById('sales-table-body');
-            tbody.innerHTML = '';
-            const sales = allLeads.filter(l => ['pagamento_processado', 'emitido'].includes(l.status));
-
-            sales.forEach(sale => {
-                const isSent = sale.status_envio_chip ? '<span class="text-green-600 font-bold">Enviado</span>' : '<span class="text-red-500 font-bold">Pendente</span>';
-                
-                tbody.innerHTML += `
-                    <tr class="hover:bg-gray-50 border-b">
-                        <td class="p-4 font-mono text-xs">${sale.id.split('-')[0]}...</td>
-                        <td class="p-4">
-                            <p class="font-bold">${sale.nome_usuario}</p>
-                            <p class="text-xs text-green-600"><i class="fa-brands fa-whatsapp"></i> ${sale.telefone_usuario || 'Sem tel'}</p>
-                        </td>
-                        <td class="p-4">${sale.plano_nome || '-'}</td>
-                        <td class="p-4">${isSent}</td>
-                        <td class="p-4 text-center">
-                            <button onclick="openModal('${sale.id}')" class="bg-green-100 text-green-700 px-3 py-1 rounded text-xs font-bold hover:bg-green-200">Gerar Zap</button>
-                        </td>
-                    </tr>`;
+            const tb = document.getElementById('sales-table-body'); tb.innerHTML = '';
+            allLeads.filter(l => ['pagamento_processado', 'emitido'].includes(l.status)).forEach(s => {
+                tb.innerHTML += `<tr class="hover:bg-gray-50 border-b"><td class="p-4 font-mono text-xs">${s.id.slice(0,8)}</td><td class="p-4"><b>${s.nome_usuario}</b><br>${s.telefone_usuario}</td><td class="p-4">${s.plano_nome}</td><td class="p-4">${s.status_envio_chip ? '✅ Enviado' : '❌ Pendente'}</td><td class="p-4"><button onclick="openModal('${s.id}')" class="bg-green-100 text-green-700 px-2 py-1 rounded font-bold text-xs">Zap</button></td></tr>`;
             });
         }
 
-        // LÓGICA DO MODAL E AÇÕES
         let currentLead = null;
-
         function openModal(id) {
             currentLead = allLeads.find(l => l.id === id);
-            if (!currentLead) return;
-
-            document.getElementById('modal-lead-id').value = currentLead.id;
-            document.getElementById('modal-name').innerText = currentLead.nome_usuario || 'N/A';
-            document.getElementById('modal-phone').innerText = currentLead.telefone_usuario || 'N/A';
+            document.getElementById('modal-lead-id').value = id;
+            document.getElementById('modal-name').innerText = currentLead.nome_usuario;
+            document.getElementById('modal-phone').innerText = currentLead.telefone_usuario;
             document.getElementById('modal-status').value = currentLead.status;
             document.getElementById('modal-chip').value = currentLead.chip_esim || '';
-
             document.getElementById('action-modal').classList.add('modal-active');
         }
-
-        function closeModal() {
-            document.getElementById('action-modal').classList.remove('modal-active');
-        }
-
+        function closeModal() { document.getElementById('action-modal').classList.remove('modal-active'); }
+        
         async function saveLeadChanges() {
             const id = document.getElementById('modal-lead-id').value;
-            const newStatus = document.getElementById('modal-status').value;
-            const chip = document.getElementById('modal-chip').value;
-
-            const { error } = await supabase
-                .from('remessaonlinesioux_leads')
-                .update({ status: newStatus, chip_esim: chip })
-                .eq('id', id);
-
-            if (error) alert('Erro ao salvar: ' + error.message);
-            else {
-                alert('Dados atualizados com sucesso!');
-                closeModal();
-                loadData(); // Recarrega tabela
-            }
+            await supabase.from('remessaonlinesioux_leads').update({ status: document.getElementById('modal-status').value, chip_esim: document.getElementById('modal-chip').value }).eq('id', id);
+            closeModal(); loadData();
         }
 
         function sendWhatsApp() {
             const chip = document.getElementById('modal-chip').value;
-            if (!chip) { alert('Digite o número do chip antes de enviar.'); return; }
-            
-            // Tenta pegar o telefone do lead, se não tiver, pede pra digitar
-            let phone = currentLead.telefone_usuario || '';
-            phone = phone.replace(/\D/g, ''); // Limpa caracteres
-
-            if (phone.length < 10) {
-                alert("Telefone do cliente inválido ou não cadastrado.");
-                return;
-            }
-            if (!phone.startsWith('55')) phone = '55' + phone; // Adiciona DDI Brasil se faltar
-
-            const nome = currentLead.nome_usuario.split(' ')[0];
-            const msg = `Olá ${nome}, tudo bem? Aqui é da Remessa Online/Coris.\n\nSua compra foi confirmada! ✈️\n\nSegue o número do seu Chip eSIM Internacional (Cortesia): *${chip}*\n\nSua apólice já foi enviada por e-mail. Boa viagem!`;
-            
-            // Salva status de envio
-            supabase.from('remessaonlinesioux_leads').update({ status_envio_chip: true }).eq('id', currentLead.id).then(() => {});
-
+            if(!chip) return alert('Digite o chip');
+            const phone = '55' + currentLead.telefone_usuario.replace(/\D/g, '');
+            const msg = `Olá ${currentLead.nome_usuario.split(' ')[0]}, compra confirmada! Seu chip eSIM: *${chip}*. Apólice enviada por e-mail.`;
+            supabase.from('remessaonlinesioux_leads').update({ status_envio_chip: true }).eq('id', currentLead.id);
             window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
         }
     </script>
