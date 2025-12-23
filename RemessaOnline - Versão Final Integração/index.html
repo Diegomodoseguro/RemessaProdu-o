@@ -26,7 +26,7 @@
         .btn-secondary { background-color: transparent; color: var(--color-remessa-main); border: 1px solid var(--color-remessa-main); }
         header { position: sticky; top: 0; z-index: 50; background: white; box-shadow: 0 3px 14px rgba(0,0,0,0.08); min-height: 80px; display: flex; align-items: center;}
         .form-input, .form-select { border: 1px solid var(--color-border); border-radius: 8px; padding: 10px 16px; width: 100%; background: var(--color-bg-light); color: var(--color-text-title); height: 48px; }
-        .flatpickr-input[readonly] { background-color: var(--color-bg-light); cursor: pointer; }
+        .horizontal-section { background-color: var(--color-remessa-main); color: white; padding: 80px 0; }
         .plan-card { border: 1px solid var(--color-border); border-radius: 12px; transition: all 0.2s; background: white; }
         .plan-card:hover { border-color: var(--color-remessa-main); box-shadow: 0 4px 18px rgba(0,0,0,0.08); }
         .loader { border: 3px solid #e0e0e0; border-top: 3px solid var(--color-remessa-main); border-radius: 50%; width: 20px; height: 20px; animation: spin 0.8s linear infinite; }
@@ -34,12 +34,8 @@
         .modal { transition: opacity 0.3s; }
         .animate-on-scroll { opacity: 0; transform: translateY(20px); transition: 0.6s; }
         .animate-on-scroll.is-visible { opacity: 1; transform: translateY(0); }
-        .horizontal-section { background-color: var(--color-remessa-main); color: white; padding: 80px 0; }
         .StripeElement { background: white; padding: 12px; border: 1px solid var(--color-border); border-radius: 8px; }
-        .step-card { position: relative; padding-left: 24px; border-left: 2px solid var(--color-remessa-main); }
         .checkout-grid { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; font-size: 14px; }
-        .checkout-label { color: #676c72; font-weight: 500; }
-        .checkout-value { color: #000733; font-weight: 600; text-align: right; }
     </style>
 </head>
 <body class="bg-white text-gray-800 font-inter">
@@ -89,7 +85,7 @@
                  <div class="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 animate-on-scroll">
                      <div class="text-center mb-10">
                         <h2 class="text-3xl font-bold text-[#000733] mb-3">Simule seu Seguro Viagem</h2>
-                        <p class="text-[#676c72]">Preencha os dados para ver os planos com <strong>15% de desconto</strong>.</p>
+                        <p class="text-[#676c72]">Dados necessários para cálculo preciso da apólice.</p>
                      </div>
                      <form id="quote-form" class="space-y-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -111,10 +107,25 @@
                             <div><label class="block text-sm font-semibold mb-2 text-gray-700">Data de Volta</label><input type="text" id="return-date" class="form-input flatpickr-input" placeholder="DD/MM/AAAA" readonly></div>
                         </div>
                         <p id="trip-duration" class="text-sm text-center text-gray-600 font-medium hidden bg-blue-50 py-3 rounded-lg border border-blue-100">Duração: <span id="duration-days" class="font-bold text-blue-600">0</span> dias</p>
+                        
+                        <!-- SEÇÃO DE PASSAGEIROS E IDADES -->
                         <div>
-                            <label class="block text-sm font-semibold mb-2 text-gray-700">Passageiros</label>
-                            <div class="relative"><input type="number" id="passengers" min="1" max="6" value="1" class="form-input pr-12" required><span class="absolute right-4 top-3 text-gray-500 text-sm pointer-events-none">Pessoas</span></div>
+                            <label class="block text-sm font-semibold mb-2 text-gray-700">Quantidade de Passageiros</label>
+                            <select id="passengers" class="form-select" required>
+                                <option value="1">1 Passageiro</option>
+                                <option value="2">2 Passageiros</option>
+                                <option value="3">3 Passageiros</option>
+                                <option value="4">4 Passageiros</option>
+                                <option value="5">5 Passageiros</option>
+                                <option value="6">6 Passageiros</option>
+                            </select>
                         </div>
+                        
+                        <div id="ages-container" class="grid grid-cols-2 md:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <!-- Campos de idade inseridos via JS -->
+                            <div><label class="block text-xs font-bold text-gray-500 mb-1">Idade Pax 1</label><input type="number" class="form-input h-10 age-input" min="0" max="85" required placeholder="Anos"></div>
+                        </div>
+
                         <div id="quote-feedback" class="text-center text-sm hidden p-3 bg-red-50 text-red-600 rounded"></div>
                         <div class="pt-6 text-center"><button type="submit" id="get-quote-btn" class="btn btn-cta text-lg w-full md:w-auto min-w-[280px] py-4 shadow-lg hover:-translate-y-0.5 transition-transform"><span id="quote-btn-text">Ver Planos e Preços</span><div id="quote-btn-loader" class="loader ml-3 hidden"></div></button></div>
                      </form>
@@ -133,19 +144,15 @@
             <div class="container mx-auto px-4 max-w-6xl">
                 <h2 class="text-3xl md:text-4xl font-bold text-[#000733] mb-12 animate-on-scroll">Por que escolher a Coris?</h2>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                     <!-- Card 1 -->
                      <div class="p-6 border rounded-xl hover:shadow-lg transition">
                         <h3 class="text-lg font-bold mb-2 text-[#000733]">Cobertura Completa</h3><p class="text-sm text-gray-500">Despesas médicas, hospitalares e odontológicas.</p>
                     </div>
-                     <!-- Card 2 -->
                      <div class="p-6 border rounded-xl hover:shadow-lg transition">
                         <h3 class="text-lg font-bold mb-2 text-[#000733]">Atendimento 24h</h3><p class="text-sm text-gray-500">Central própria com atendimento em português.</p>
                     </div>
-                     <!-- Card 3 -->
                      <div class="p-6 border rounded-xl hover:shadow-lg transition">
                         <h3 class="text-lg font-bold mb-2 text-[#000733]">15% OFF Real</h3><p class="text-sm text-gray-500">Desconto exclusivo para clientes Remessa Online.</p>
                     </div>
-                     <!-- Card 4 -->
                      <div class="p-6 border rounded-xl hover:shadow-lg transition">
                         <h3 class="text-lg font-bold mb-2 text-[#000733]">+2GB Internet</h3><p class="text-sm text-gray-500">Chip eSIM internacional grátis para sua viagem.</p>
                     </div>
@@ -153,7 +160,6 @@
             </div>
         </section>
 
-        <!-- Footer -->
         <footer class="bg-[#292929] text-gray-400 text-sm pt-12 pb-8 border-t border-gray-800">
             <div class="container mx-auto px-4 max-w-7xl">
                 <p>A Remessa Online é uma plataforma digital da Bee Tech Serviços de Tecnologia Ltda.</p>
@@ -165,7 +171,6 @@
         </footer>
     </main>
     
-    <!-- Modal Checkout -->
     <div id="checkout-modal" class="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-[60] hidden opacity-0 pointer-events-none modal backdrop-blur-sm">
          <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col modal-content">
             <div class="p-6 border-b flex justify-between items-center bg-gray-50"><h2 class="text-xl font-bold text-[#000733]">Finalizar Compra</h2><button id="close-checkout-modal" class="text-2xl text-gray-400 hover:text-gray-600">&times;</button></div>
@@ -181,7 +186,6 @@
                              <span class="checkout-label">Passageiros:</span> <span class="checkout-value" id="checkout-passengers-count"></span>
                              <span class="checkout-label">Cobertura Médica:</span> <span class="checkout-value" id="checkout-dmh"></span>
                              <span class="checkout-label">Seguro Bagagem:</span> <span class="checkout-value" id="checkout-bagagem"></span>
-                             <span class="checkout-label">Bônus:</span> <span class="checkout-value text-green-600">Chip eSIM 2GB (Grátis)</span>
                          </div>
                          <div class="mt-4 pt-4 border-t border-blue-200 flex justify-between items-center">
                              <span class="font-bold text-gray-700">Total a Pagar:</span>
@@ -206,7 +210,6 @@
                              <input type="tel" id="contact-phone" class="form-input text-sm" placeholder="Tel Contato" required>
                          </div>
                          <div class="p-3 border rounded bg-white"><div id="card-element"></div></div>
-                         <div id="card-errors" class="text-red-600 text-xs"></div>
                          <div class="flex items-start gap-2 mt-2">
                              <input type="checkbox" id="terms-check" required class="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
                              <label for="terms-check" class="text-xs text-gray-600 leading-snug">Li e concordo com as <a href="#" class="text-blue-600 underline font-bold">Condições Gerais</a>.</label>
@@ -221,7 +224,6 @@
 
     <script>
         const STRIPE_KEY = 'pk_live_51S0mcpFWoZCz7UUNSC4AQ34VHLEqOAmy0j84mMhhDfn0uILIYabgbxkCWZiaE70OLLhrRYdAHcFbNIaJScjlpvZB006GCqwN3x';
-        // Config Supabase - Use as chaves do seu projeto
         const supabaseClient = supabase.createClient('https://nklclnadvlqvultatapb.supabase.co', 'sb_publishable_zNn1QEXYfzMjAxfbHYqEHA_a9bSj-Dt');
         let stripe, cardElement, currentQuoteData = {};
         let plans = [];
@@ -242,54 +244,58 @@
                 }
             }
 
-            // AÇÃO 1: OBTER COTAÇÃO (Chama Backend)
+            // ATUALIZA CAMPOS DE IDADE
+            document.getElementById('passengers').addEventListener('change', (e) => {
+                const count = parseInt(e.target.value);
+                const container = document.getElementById('ages-container');
+                container.innerHTML = '';
+                for(let i=1; i<=count; i++) {
+                    container.innerHTML += `<div><label class="block text-xs font-bold text-gray-500 mb-1">Idade Pax ${i}</label><input type="number" id="age-${i}" class="form-input h-10 age-input" min="0" max="85" required placeholder="Anos"></div>`;
+                }
+            });
+
             document.getElementById('quote-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const btn = document.getElementById('get-quote-btn');
                 const feedback = document.getElementById('quote-feedback');
                 
-                btn.disabled = true; 
-                document.getElementById('quote-btn-loader').classList.remove('hidden');
-                feedback.classList.add('hidden');
+                btn.disabled = true; document.getElementById('quote-btn-loader').classList.remove('hidden'); feedback.classList.add('hidden');
                 
                 const days = parseInt(document.getElementById('duration-days').textContent) || 7;
-                const passengers = parseInt(document.getElementById('passengers').value);
+                const paxCount = parseInt(document.getElementById('passengers').value);
+                const ages = [];
+                for(let i=1; i<=paxCount; i++) {
+                    const val = document.getElementById(`age-${i}`).value;
+                    if(val) ages.push(parseInt(val));
+                }
+
                 const destSelect = document.getElementById('destination');
-                const destValue = destSelect.value;
-                const destText = destSelect.options[destSelect.selectedIndex].text;
                 
                 currentQuoteData = { 
-                    days, passengers, destValue, destText, 
-                    dateStartDisplay: fpDeparture.input.value, 
-                    dateEndDisplay: fpReturn.input.value,
-                    email: document.getElementById('user-email-quote').value, 
-                    name: document.getElementById('user-name-quote').value
+                    days, passengers: paxCount, ages, destValue: destSelect.value, destText: destSelect.options[destSelect.selectedIndex].text,
+                    dateStartDisplay: fpDeparture.input.value, dateEndDisplay: fpReturn.input.value,
+                    email: document.getElementById('user-email-quote').value, name: document.getElementById('user-name-quote').value
                 };
 
                 try {
-                    // Passo A: Salvar Lead
-                    const { data, error } = await supabaseClient
-                        .from('remessaonlinesioux_leads')
-                        .insert([{
-                            status: 'cotacao_iniciada', email_usuario: currentQuoteData.email, nome_usuario: currentQuoteData.name,
-                            destino_cotacao: destValue, passageiros_cotacao: passengers, dias_cotacao: days, origem: 'geral_15'
-                        }]).select();
-                    if (error) throw error;
-                    currentQuoteData.leadId = data[0].id;
-
-                    // Passo B: Chamar Backend para pegar Planos
+                    // Passo A: Backend (Pega preços corretos por idade)
                     const plansResponse = await fetch('/api/backend', {
                         method: 'POST',
-                        body: JSON.stringify({ action: 'getPlans', destino: destValue, dias: days, passageiros: passengers })
+                        body: JSON.stringify({ action: 'getPlans', destino: currentQuoteData.destValue, dias: days, idades: ages })
                     });
                     const plansData = await plansResponse.json();
-                    plans = plansData.plans;
+                    plans = plansData.plans || [];
+
+                    // Passo B: Lead (Opcional, salva depois pra ser mais rapido)
+                    supabaseClient.from('remessaonlinesioux_leads').insert([{
+                        status: 'cotacao_iniciada', email_usuario: currentQuoteData.email, nome_usuario: currentQuoteData.name,
+                        destino_cotacao: currentQuoteData.destValue, passageiros_cotacao: paxCount, dias_cotacao: days, origem: 'geral_15'
+                    }]).then(({data}) => { if(data) currentQuoteData.leadId = data[0].id; });
 
                     const container = document.getElementById('plans-container');
                     container.innerHTML = '';
                     plans.forEach(plan => {
-                        const total = plan.basePrice * passengers * (days/5);
-                        const final = total * 0.85; // 15% OFF
+                        const final = plan.totalPrice * 0.85; // 15% OFF
                         container.innerHTML += `
                             <div class="plan-card p-6 flex flex-col justify-between animate-on-scroll is-visible rounded-xl border border-gray-200 shadow-md hover:shadow-xl transition-shadow">
                                 <div>
@@ -300,12 +306,10 @@
                                     <ul class="text-sm text-gray-600 space-y-3 mb-6">
                                         <li>✓ DMH: <strong>${plan.dmh}</strong></li>
                                         <li>✓ Bagagem: <strong>${plan.bagagem}</strong></li>
-                                        <li>✓ COVID-19: <strong>${plan.covid}</strong></li>
-                                        <li class="text-blue-600 font-bold">+ Chip Internet Grátis</li>
+                                        <li class="text-xs text-gray-500">Cotação para ${ages.length} passageiro(s)</li>
                                     </ul>
                                 </div>
                                 <div class="mt-4 border-t pt-4">
-                                    <p class="text-xs text-gray-400 line-through">De: R$ ${total.toFixed(2)}</p>
                                     <p class="text-3xl font-bold text-[#2244FF]">R$ ${final.toFixed(2)}</p>
                                     <button class="btn btn-cta w-full py-3 shadow-md" onclick="openCheckout('${plan.id}')">Selecionar</button>
                                 </div>
@@ -316,8 +320,7 @@
                     document.getElementById('quote-results').scrollIntoView({ behavior: 'smooth' });
 
                 } catch (error) {
-                    feedback.textContent = `Erro ao cotar: ${error.message}`;
-                    feedback.classList.remove('hidden');
+                    feedback.textContent = `Erro ao cotar: ${error.message}`; feedback.classList.remove('hidden');
                 } finally {
                     btn.disabled = false; document.getElementById('quote-btn-loader').classList.add('hidden');
                 }
@@ -325,7 +328,7 @@
 
             window.openCheckout = (id) => {
                 const plan = plans.find(p => p.id === id);
-                const price = (plan.basePrice * currentQuoteData.passengers * (currentQuoteData.days/5)) * 0.85; // 15%
+                const price = plan.totalPrice * 0.85; 
 
                 const modal = document.getElementById('checkout-modal');
                 modal.classList.remove('hidden', 'pointer-events-none');
@@ -346,7 +349,7 @@
                 const paxContainer = document.getElementById('passenger-forms');
                 paxContainer.innerHTML = '';
                 for(let i=1; i<=currentQuoteData.passengers; i++) {
-                    paxContainer.innerHTML += `<div class="border p-4 rounded-lg mb-3 bg-gray-50"><h4 class="text-xs font-bold text-gray-500 mb-3 uppercase">Passageiro ${i}</h4><div class="grid grid-cols-2 gap-3"><input id="pax-${i}-nome" placeholder="Nome Completo" class="form-input text-sm" required><input id="pax-${i}-cpf" placeholder="CPF" class="form-input text-sm" required></div></div>`;
+                    paxContainer.innerHTML += `<div class="border p-4 rounded-lg mb-3 bg-gray-50"><h4 class="text-xs font-bold text-gray-500 mb-3 uppercase">Passageiro ${i} (Idade: ${currentQuoteData.ages[i-1]})</h4><div class="grid grid-cols-2 gap-3"><input id="pax-${i}-nome" placeholder="Nome Completo" class="form-input text-sm" required><input id="pax-${i}-cpf" placeholder="CPF" class="form-input text-sm" required></div></div>`;
                 }
             };
 
@@ -356,7 +359,6 @@
                 setTimeout(() => modal.classList.add('hidden', 'pointer-events-none'), 300);
             };
 
-            // AÇÃO 2: PAGAR (Chama Backend)
             document.getElementById('checkout-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const btn = document.getElementById('submit-checkout-btn');
@@ -380,7 +382,7 @@
                         method: 'POST',
                         body: JSON.stringify({
                             action: 'processPayment',
-                            leadId: currentQuoteData.leadId,
+                            leadId: currentQuoteData.leadId || 'temp_lead', // Fallback se o ID ainda não voltou do Supabase
                             paymentMethodId: paymentMethod.id,
                             planId: document.getElementById('selected-plan-id').value,
                             planName: document.getElementById('checkout-plan-name').textContent,
@@ -407,7 +409,7 @@
                     if(result.error) throw new Error(result.error);
                     
                     document.getElementById('checkout-modal').click();
-                    alert(`Sucesso! Pagamento aprovado.\nApólice Coris emitida: ${result.voucher}\nConfira seu e-mail.`);
+                    alert(`Sucesso! Pedido enviado.\nConfira seu e-mail.`);
                     location.reload();
 
                 } catch (err) {
