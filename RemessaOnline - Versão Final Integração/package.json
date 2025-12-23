@@ -1,12 +1,10 @@
 {
   "name": "remessa-online-coris-backend",
   "version": "1.0.0",
-  "description": "Backend para integração Coris SOAP + Stripe + Supabase",
-  "main": "netlify/functions/backend.js",
+  "description": "Backend Simplificado",
   "dependencies": {
     "stripe": "^14.0.0",
     "@supabase/supabase-js": "^2.39.0",
-    "xml2js": "^0.6.2",
-    "node-fetch": "^3.3.2"
+    "xml2js": "^0.6.2"
   }
 }
