@@ -36,7 +36,6 @@
         <div class="bg-white p-8 rounded-2xl shadow-2xl w-96 text-center">
             <img src="https://cms-cdn-sae1.remessaonline.com.br/Remessa_Online_Azul_Vertical_Principal_3ebe3d3a8d.svg" class="h-10 mx-auto mb-6">
             <h2 class="text-xl font-bold mb-4 text-gray-800">Acesso Restrito</h2>
-            <!-- Usuário removido -->
             <input type="password" id="admin-pass" placeholder="Senha de Acesso" class="w-full border p-3 rounded-lg mb-6 text-center text-lg">
             <button onclick="checkLogin()" class="w-full bg-[#2244FF] text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition">Entrar</button>
             <p id="login-error" class="text-red-500 text-sm mt-3 hidden">Senha incorreta.</p>
@@ -122,29 +121,21 @@
             </div>
         </div>
 
-        <!-- CONFIGURAÇÕES (NOVO) -->
+        <!-- CONFIGURAÇÕES -->
         <div id="section-config" class="hidden space-y-6 section-content">
             <div class="card max-w-2xl mx-auto">
                 <h3 class="font-bold text-lg mb-6 text-gray-800 flex items-center gap-2"><i class="fa-solid fa-tags"></i> Precificação e Margem</h3>
-                
                 <div class="bg-blue-50 p-6 rounded-xl border border-blue-100">
                     <label class="block text-sm font-bold text-blue-900 mb-2">Comissão Adicional (%)</label>
                     <p class="text-xs text-blue-700 mb-4">Este percentual será somado ao preço base da Coris para formar o preço final do cliente.</p>
-                    
                     <div class="flex items-center gap-4">
                         <div class="relative w-40">
                             <input type="number" id="commission-rate" class="w-full text-2xl font-bold p-3 border border-blue-300 rounded-lg text-center text-blue-900 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="0">
                             <span class="absolute right-4 top-4 text-blue-400 font-bold">%</span>
                         </div>
-                        <button onclick="saveCommission()" class="bg-blue-600 text-white px-6 py-4 rounded-lg font-bold hover:bg-blue-700 transition flex items-center gap-2 shadow-lg">
-                            <i class="fa-solid fa-save"></i> Salvar Comissão
-                        </button>
+                        <button onclick="saveCommission()" class="bg-blue-600 text-white px-6 py-4 rounded-lg font-bold hover:bg-blue-700 transition flex items-center gap-2 shadow-lg"><i class="fa-solid fa-save"></i> Salvar Comissão</button>
                     </div>
                     <p id="config-feedback" class="text-sm font-medium mt-3 hidden"></p>
-                </div>
-
-                <div class="mt-8 p-4 border-t border-gray-100 text-sm text-gray-500">
-                    <p><strong>Exemplo:</strong> Se o plano custa R$ 100,00 e a comissão for 20%, o cliente pagará R$ 120,00.</p>
                 </div>
             </div>
         </div>
@@ -166,8 +157,10 @@
     </div>
 
     <script>
-        const supabaseUrl = 'https://ujgnpbrreosmiujkedsa.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqZ25wYnJyZW9zbWl1amtlZHNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE4ODU3NDEsImV4cCI6MjA2NzQ2MTc0MX0.QY2xuq4lpZkI3Hi6gwRLi-0VUxuGoWS_LzfGtIJwRzE';
+        // CREDENCIAIS REAIS DO SUPABASE (COPIADAS DO PROMPT)
+        const supabaseUrl = 'https://nklclnadvlqvultatapb.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rbGNsbmFkdmxxdnVsdGF0YXBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM1OTQ1OTUsImV4cCI6MjA3OTE3MDU5NX0.aRINn2McObJn9N4b3fEG262mR92e_MiP60jX13mtxKw';
+        
         const supabase = supabase.createClient(supabaseUrl, supabaseKey);
         let allLeads = [], funnelChartInstance = null;
 
@@ -218,7 +211,8 @@
         }
 
         async function loadData() {
-            const { data } = await supabase.from('remessaonlinesioux_leads').select('*').order('created_at', { ascending: false });
+            const { data, error } = await supabase.from('remessaonlinesioux_leads').select('*').order('created_at', { ascending: false });
+            if(error) { console.error(error); alert('Erro ao conectar ao banco. Verifique o console.'); return; }
             if(data) { allLeads = data; renderDashboard(); renderLeadsTable(); renderSalesTable(); }
         }
 
@@ -240,7 +234,7 @@
             });
             
             const act = document.getElementById('recent-activity'); act.innerHTML = '';
-            allLeads.slice(0, 5).forEach(l => act.innerHTML += `<div class="p-2 bg-gray-50 rounded text-gray-600"><strong>${l.nome_usuario}</strong> - ${l.status}</div>`);
+            allLeads.slice(0, 5).forEach(l => act.innerHTML += `<div class="p-2 bg-gray-50 rounded text-gray-600"><strong>${l.nome_usuario || 'Anônimo'}</strong> - ${l.status}</div>`);
         }
 
         function renderLeadsTable() {
@@ -249,14 +243,14 @@
                 let st = 'status-abandonado', txt = 'Abandonado';
                 if(l.status === 'pagamento_processado') { st = 'status-pago'; txt = 'Pago'; }
                 else if(l.status === 'emitido') { st = 'status-pago'; txt = 'Emitido'; }
-                tb.innerHTML += `<tr class="hover:bg-gray-50 border-b"><td class="p-4">${new Date(l.created_at).toLocaleDateString()}</td><td class="p-4"><b>${l.nome_usuario}</b><br><span class="text-xs">${l.email_usuario}</span></td><td class="p-4 text-xs">${l.destino_cotacao} / ${l.motivo_viagem}</td><td class="p-4"><span class="status-badge ${st}">${txt}</span></td><td class="p-4"><button onclick="openModal('${l.id}')" class="text-blue-600"><i class="fa-solid fa-edit"></i></button></td></tr>`;
+                tb.innerHTML += `<tr class="hover:bg-gray-50 border-b"><td class="p-4">${new Date(l.created_at).toLocaleDateString()}</td><td class="p-4"><b>${l.nome_usuario || '-'}</b><br><span class="text-xs">${l.email_usuario || '-'}</span></td><td class="p-4 text-xs">${l.destino_cotacao} / ${l.motivo_viagem || '-'}</td><td class="p-4"><span class="status-badge ${st}">${txt}</span></td><td class="p-4"><button onclick="openModal('${l.id}')" class="text-blue-600"><i class="fa-solid fa-edit"></i></button></td></tr>`;
             });
         }
 
         function renderSalesTable() {
             const tb = document.getElementById('sales-table-body'); tb.innerHTML = '';
             allLeads.filter(l => ['pagamento_processado', 'emitido'].includes(l.status)).forEach(s => {
-                tb.innerHTML += `<tr class="hover:bg-gray-50 border-b"><td class="p-4 font-mono text-xs">${s.id.slice(0,8)}</td><td class="p-4"><b>${s.nome_usuario}</b><br>${s.telefone_usuario}</td><td class="p-4">${s.plano_nome}</td><td class="p-4">${s.status_envio_chip ? '✅ Enviado' : '❌ Pendente'}</td><td class="p-4"><button onclick="openModal('${s.id}')" class="bg-green-100 text-green-700 px-2 py-1 rounded font-bold text-xs">Zap</button></td></tr>`;
+                tb.innerHTML += `<tr class="hover:bg-gray-50 border-b"><td class="p-4 font-mono text-xs">${s.id.slice(0,8)}</td><td class="p-4"><b>${s.nome_usuario}</b><br>${s.telefone_usuario || '-'}</td><td class="p-4">${s.plano_nome || 'N/A'}</td><td class="p-4">${s.status_envio_chip ? '✅ Enviado' : '❌ Pendente'}</td><td class="p-4"><button onclick="openModal('${s.id}')" class="bg-green-100 text-green-700 px-2 py-1 rounded font-bold text-xs">Zap</button></td></tr>`;
             });
         }
 
@@ -264,8 +258,8 @@
         function openModal(id) {
             currentLead = allLeads.find(l => l.id === id);
             document.getElementById('modal-lead-id').value = id;
-            document.getElementById('modal-name').innerText = currentLead.nome_usuario;
-            document.getElementById('modal-phone').innerText = currentLead.telefone_usuario;
+            document.getElementById('modal-name').innerText = currentLead.nome_usuario || 'Sem nome';
+            document.getElementById('modal-phone').innerText = currentLead.telefone_usuario || 'Sem telefone';
             document.getElementById('modal-status').value = currentLead.status;
             document.getElementById('modal-chip').value = currentLead.chip_esim || '';
             document.getElementById('action-modal').classList.add('modal-active');
@@ -281,6 +275,7 @@
         function sendWhatsApp() {
             const chip = document.getElementById('modal-chip').value;
             if(!chip) return alert('Digite o chip');
+            if(!currentLead.telefone_usuario) return alert('Cliente sem telefone cadastrado.');
             const phone = '55' + currentLead.telefone_usuario.replace(/\D/g, '');
             const msg = `Olá ${currentLead.nome_usuario.split(' ')[0]}, compra confirmada! Seu chip eSIM: *${chip}*. Apólice enviada por e-mail.`;
             supabase.from('remessaonlinesioux_leads').update({ status_envio_chip: true }).eq('id', currentLead.id);
