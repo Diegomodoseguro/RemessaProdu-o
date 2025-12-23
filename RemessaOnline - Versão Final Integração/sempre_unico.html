@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Seguro Viagem Coris | SempreÚnico Remessa Online</title>
+    <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💎</text></svg>">
     
+    <!-- Dependências -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://js.stripe.com/v3/"></script>
@@ -38,7 +40,7 @@
         .StripeElement { background: white; padding: 12px; border: 1px solid var(--color-border); border-radius: 8px; }
         .checkout-grid { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; font-size: 14px; }
         
-        /* Botão Flutuante WhatsApp */
+        /* Botão Flutuante */
         .floating-whatsapp {
             position: fixed; bottom: 24px; right: 24px;
             background-color: #25D366; color: white;
@@ -52,6 +54,7 @@
 </head>
 <body class="bg-white text-gray-800 font-inter">
 
+    <!-- Header (Igual) -->
     <header>
         <nav class="container mx-auto px-4 max-w-7xl flex items-center justify-between">
             <div class="flex items-center space-x-4">
@@ -74,15 +77,27 @@
     </header>
 
     <main>
+        <!-- Hero Section SempreÚnico (Fundo Escuro) -->
         <section class="horizontal-section relative overflow-hidden">
             <div class="container mx-auto px-4 max-w-7xl relative z-10">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                     <div class="text-left animate-on-scroll">
-                        <div class="inline-block bg-white/10 backdrop-blur-sm border border-white/20 text-white font-semibold text-sm px-4 py-1.5 rounded-full mb-6">Exclusivo Cliente SempreÚnico</div>
-                        <h1 class="text-4xl lg:text-6xl font-bold mb-6 leading-tight text-white">Confie em quem prioriza você</h1>
-                        <p class="text-lg text-gray-200 font-light mb-10 max-w-lg">Seguro Viagem Coris com <strong>20% OFF</strong> e <strong>2GB de internet grátis</strong>. A proteção mais completa para clientes VIP da Remessa Online.</p>
+                        <div class="inline-block bg-white/10 backdrop-blur-sm border border-white/20 text-white font-semibold text-sm px-4 py-1.5 rounded-full mb-6">
+                            Exclusivo Cliente SempreÚnico
+                        </div>
+                        <h1 class="text-4xl lg:text-6xl font-bold mb-6 leading-tight text-white">
+                            Confie em quem prioriza você
+                        </h1>
+                        <p class="text-lg text-gray-200 font-light mb-10 max-w-lg">
+                            Seguro Viagem Coris com <strong>20% OFF</strong> e <strong>2GB de internet grátis</strong>. A proteção mais completa para clientes VIP da Remessa Online.
+                        </p>
                         <div class="flex flex-col sm:flex-row gap-4">
-                            <a href="#cotacao" class="btn btn-cta text-lg px-8 py-4 shadow-lg hover:-translate-y-1 w-full sm:w-auto text-center">Simular com 20% OFF</a>
+                            <a href="#cotacao" class="btn btn-cta text-lg px-8 py-4 shadow-lg hover:-translate-y-1 w-full sm:w-auto text-center">
+                                Simular com 20% OFF
+                            </a>
+                            <a href="#beneficios" class="btn btn-secondary text-white border-white hover:bg-white hover:text-[#000733] w-full sm:w-auto text-center px-8 py-3">
+                                Ver benefícios VIP
+                            </a>
                         </div>
                     </div>
                     <div class="relative h-full flex justify-center md:justify-end animate-on-scroll">
@@ -92,6 +107,7 @@
             </div>
         </section>
 
+        <!-- Cotação -->
         <section id="cotacao" class="py-20 bg-[#f9fafb] relative -mt-10 z-20">
              <div class="container mx-auto px-4 max-w-4xl">
                  <div class="bg-white p-8 md:p-12 rounded-2xl shadow-xl border border-gray-100 animate-on-scroll">
@@ -167,10 +183,10 @@
             <div class="container mx-auto px-4 max-w-6xl">
                 <h2 class="text-3xl md:text-4xl font-bold text-[#000733] mb-12 animate-on-scroll">Por que escolher a Coris?</h2>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                     <div class="p-6 border rounded-xl hover:shadow-lg transition"><h3 class="text-lg font-bold mb-2 text-[#000733]">Cobertura Completa</h3><p class="text-sm text-gray-500">Despesas médicas, hospitalares e odontológicas.</p></div>
-                     <div class="p-6 border rounded-xl hover:shadow-lg transition"><h3 class="text-lg font-bold mb-2 text-[#000733]">Atendimento 24h</h3><p class="text-sm text-gray-500">Central própria com atendimento em português.</p></div>
-                     <div class="p-6 border rounded-xl hover:shadow-lg transition"><h3 class="text-lg font-bold mb-2 text-[#000733]">15% OFF Real</h3><p class="text-sm text-gray-500">Desconto exclusivo para clientes Remessa Online.</p></div>
-                     <div class="p-6 border rounded-xl hover:shadow-lg transition"><h3 class="text-lg font-bold mb-2 text-[#000733]">+2GB Internet</h3><p class="text-sm text-gray-500">Chip eSIM internacional grátis para sua viagem.</p></div>
+                     <div class="p-6 border rounded-xl hover:shadow-lg transition"><h3 class="text-lg font-bold mb-2 text-[#000733]">Cobertura Médica Premium</h3><p class="text-sm text-gray-500">Atendimento VIP em redes hospitalares de excelência global, garantindo a melhor assistência.</p></div>
+                     <div class="p-6 border rounded-xl hover:shadow-lg transition"><h3 class="text-lg font-bold mb-2 text-[#000733]">Central de Atendimento 24h</h3><p class="text-sm text-gray-500">Suporte prioritário em português, disponível a qualquer hora, em qualquer lugar do mundo.</p></div>
+                     <div class="p-6 border rounded-xl hover:shadow-lg transition"><h3 class="text-lg font-bold mb-2 text-[#000733]">20% OFF Exclusivo</h3><p class="text-sm text-gray-500">Desconto máximo reservado apenas para clientes SempreÚnico da Remessa Online.</p></div>
+                     <div class="p-6 border rounded-xl hover:shadow-lg transition"><h3 class="text-lg font-bold mb-2 text-[#000733]">Conectividade Global Gratuita</h3><p class="text-sm text-gray-500">Chip eSIM de 2GB incluído para sua comodidade. Navegue assim que pousar.</p></div>
                 </div>
             </div>
         </section>
@@ -302,7 +318,7 @@
                          <div class="p-3 border rounded bg-white"><div id="card-element"></div></div>
                          <div class="flex items-start gap-2 mt-2">
                              <input type="checkbox" id="terms-check" required class="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
-                             <label for="terms-check" class="text-xs text-gray-600 leading-snug">Li e concordo com as <a href="#" class="text-blue-600 underline font-bold">Condições Gerais</a>.</label>
+                             <label for="terms-check" class="text-xs text-gray-600 leading-snug">Li e concordo com os termos e as <a href="condicoesgerais_coris2025.pdf" target="_blank" class="text-blue-600 underline font-bold">Condições Gerais</a>.</label>
                          </div>
                      </div>
                      <div id="checkout-feedback" class="text-center text-sm text-red-600 hidden"></div>
@@ -327,6 +343,7 @@
                     <li>Em breve você receberá um e-mail de confirmação.</li>
                     <li>Sua apólice e voucher serão enviados neste e-mail.</li>
                     <li>Verifique sua caixa de Spam/Lixo Eletrônico.</li>
+                    <li>Leia as <a href="condicoesgerais_coris2025.pdf" target="_blank" class="text-blue-600 underline">Condições Gerais</a> do seguro.</li>
                 </ul>
             </div>
             <button onclick="location.reload()" class="btn btn-cta w-full py-3 shadow-lg">Entendi, voltar ao início</button>
@@ -488,9 +505,10 @@
                                         <span class="bg-green-100 text-green-800 text-xs px-3 py-1 rounded-full font-bold">20% OFF</span>
                                     </div>
                                     <ul class="text-sm text-gray-600 space-y-3 mb-6">
-                                        <li>✓ DMH: <strong>${plan.dmh}</strong></li>
-                                        <li>✓ Bagagem: <strong>${plan.bagagem}</strong></li>
-                                        <li class="text-xs text-gray-500">Cotação para ${paxDetails.length} passageiro(s)</li>
+                                        <li>✓ Despesas Médicas: <strong>${plan.dmh}</strong><br><span class="text-xs text-gray-400">Atendimento VIP em redes de excelência.</span></li>
+                                        <li>✓ Seguro Bagagem: <strong>${plan.bagagem}</strong><br><span class="text-xs text-gray-400">Cobertura estendida para extravio.</span></li>
+                                        <li>✓ Proteção COVID-19: <strong>${plan.covid}</strong><br><span class="text-xs text-gray-400">Assistência completa inclusa.</span></li>
+                                        <li class="text-blue-600 font-bold text-xs mt-2">+ Chip eSIM Internacional 2GB Grátis</li>
                                     </ul>
                                 </div>
                                 <div class="mt-4 border-t pt-4">
