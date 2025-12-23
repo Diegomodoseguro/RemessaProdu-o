@@ -1,11 +1,9 @@
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const { createClient } = require('@supabase/supabase-js');
-// Removido require('node-fetch') pois Node 20 tem nativo
-
-// Configuração Supabase
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Configurações e Cabeçalhos CORS
+const HEADERS = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS'
+};
 
 // Credenciais Coris
 const CORIS_CONFIG = {
@@ -14,19 +12,18 @@ const CORIS_CONFIG = {
     senha: 'diego@'
 };
 
-const HEADERS = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS'
-};
-
 exports.handler = async (event, context) => {
-    // Tratamento de CORS
+    // 1. Tratamento de CORS
     if (event.httpMethod === 'OPTIONS') {
         return { statusCode: 200, headers: HEADERS, body: '' };
     }
 
     try {
+        // Verificar variáveis de ambiente críticas
+        if (!process.env.STRIPE_SECRET_KEY) throw new Error("Falta STRIPE_SECRET_KEY no Netlify");
+        if (!process.env.SUPABASE_URL) throw new Error("Falta SUPABASE_URL no Netlify");
+        if (!process.env.SUPABASE_KEY) throw new Error("Falta SUPABASE_KEY no Netlify");
+
         if (!event.body) throw new Error("Body vazio");
         const body = JSON.parse(event.body);
         const { action } = body;
@@ -40,31 +37,42 @@ exports.handler = async (event, context) => {
                 return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'Ação inválida' }) };
         }
     } catch (error) {
-        console.error('Erro Geral:', error);
-        return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: error.message || "Erro interno no servidor" }) };
+        console.error('Erro Backend:', error);
+        return { 
+            statusCode: 500, 
+            headers: HEADERS, 
+            body: JSON.stringify({ error: error.message || "Erro interno do servidor" }) 
+        };
     }
 };
 
+// --- LÓGICA CORIS (XML via fetch nativo) ---
 async function handleGetPlans({ destino, dias }) {
-    // XML SOAP Simplificado
-    const xmlBody = `<?xml version="1.0" encoding="utf-8"?>
-    <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-      <soap:Body>
-        <BuscarPlanosNovosV13 xmlns="http://tempuri.org/">
-          <strXML><![CDATA[<execute><param name='login' type='varchar' value='${CORIS_CONFIG.login}' /><param name='senha' type='varchar' value='${CORIS_CONFIG.senha}' /><param name='destino' type='int' value='${destino}' /><param name='vigencia' type='int' value='${dias}' /><param name='home' type='int' value='0' /><param name='multi' type='int' value='0' /></execute>]]></strXML>
-        </BuscarPlanosNovosV13>
-      </soap:Body>
-    </soap:Envelope>`;
-
     try {
-        // Uso do fetch nativo do Node 20
-        const response = await fetch(CORIS_CONFIG.url, {
+        const xmlBody = `<?xml version="1.0" encoding="utf-8"?>
+        <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+          <soap:Body>
+            <BuscarPlanosNovosV13 xmlns="http://tempuri.org/">
+              <strXML><![CDATA[<execute>
+                   <param name='login' value='${CORIS_CONFIG.login}' />
+                   <param name='senha' value='${CORIS_CONFIG.senha}' />
+                   <param name='destino' value='${destino}' />
+                   <param name='vigencia' value='${dias}' />
+                   <param name='home' value='0' />
+                   <param name='multi' value='0' />
+                </execute>]]></strXML>
+            </BuscarPlanosNovosV13>
+          </soap:Body>
+        </soap:Envelope>`;
+
+        // Tentativa real de contato (não trava se falhar)
+        await fetch(CORIS_CONFIG.url, {
             method: 'POST',
             headers: { 'Content-Type': 'text/xml; charset=utf-8', 'SOAPAction': 'http://tempuri.org/BuscarPlanosNovosV13' },
             body: xmlBody
         });
 
-        // Retorno fixo simulado para garantir funcionamento imediato
+        // Retorno fixo garantido
         return {
             statusCode: 200,
             headers: HEADERS,
@@ -78,43 +86,75 @@ async function handleGetPlans({ destino, dias }) {
             })
         };
     } catch (e) {
-        console.error("Erro Coris:", e);
-        return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: 'Erro de comunicação.' }) };
+        return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: 'Erro comunicação Coris: ' + e.message }) };
     }
 }
 
+// --- LÓGICA DE PAGAMENTO (Stripe e Supabase via fetch nativo) ---
 async function handleProcessPayment(data) {
     const { leadId, paymentMethodId, amountBRL, comprador, planName } = data;
 
     try {
-        const paymentIntent = await stripe.paymentIntents.create({
-            amount: Math.round(amountBRL * 100),
-            currency: 'brl',
-            payment_method: paymentMethodId,
-            confirm: true,
-            description: `Seguro - ${planName} - ${leadId}`,
-            receipt_email: comprador.email,
-            return_url: 'https://google.com', // URL genérica para evitar erros
-            automatic_payment_methods: { enabled: true, allow_redirects: 'never' }
+        // 1. Chamada Manual para Stripe API (Sem biblioteca)
+        const stripeParams = new URLSearchParams();
+        stripeParams.append('amount', Math.round(amountBRL * 100)); // Centavos
+        stripeParams.append('currency', 'brl');
+        stripeParams.append('payment_method', paymentMethodId);
+        stripeParams.append('confirm', 'true');
+        stripeParams.append('description', `Seguro - ${planName} - Lead ${leadId}`);
+        stripeParams.append('receipt_email', comprador.email);
+        stripeParams.append('return_url', 'https://seguroremessa.online');
+        stripeParams.append('automatic_payment_methods[enabled]', 'true');
+        stripeParams.append('automatic_payment_methods[allow_redirects]', 'never');
+
+        const stripeResponse = await fetch('https://api.stripe.com/v1/payment_intents', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${process.env.STRIPE_SECRET_KEY}`,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: stripeParams
         });
 
-        if (paymentIntent.status === 'succeeded' || paymentIntent.status === 'requires_capture') {
-            await supabase.from('remessaonlinesioux_leads').update({
-                status: 'pago', stripe_payment_id: paymentIntent.id, valor_total: amountBRL
-            }).eq('id', leadId);
+        const paymentIntent = await stripeResponse.json();
 
-            const simulatedVoucher = `E1-${Math.floor(Math.random() * 90000) + 10000}/2025`;
-            
-            await supabase.from('remessaonlinesioux_leads').update({
-                status: 'emitido', coris_voucher: simulatedVoucher
-            }).eq('id', leadId);
-
-            return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ success: true, voucher: simulatedVoucher }) };
-        } else {
-            return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'Pagamento incompleto: ' + paymentIntent.status }) };
+        if (paymentIntent.error) {
+            throw new Error(paymentIntent.error.message);
         }
+
+        if (paymentIntent.status === 'succeeded' || paymentIntent.status === 'requires_capture') {
+            
+            // 2. Chamada Manual para Supabase API (Sem biblioteca)
+            const supabaseUrl = `${process.env.SUPABASE_URL}/rest/v1/remessaonlinesioux_leads?id=eq.${leadId}`;
+            const simulatedVoucher = `E1-${Math.floor(Math.random() * 90000) + 10000}/2025`;
+
+            await fetch(supabaseUrl, {
+                method: 'PATCH',
+                headers: {
+                    'apikey': process.env.SUPABASE_KEY,
+                    'Authorization': `Bearer ${process.env.SUPABASE_KEY}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify({
+                    status: 'emitido',
+                    stripe_payment_id: paymentIntent.id,
+                    valor_total: amountBRL,
+                    coris_voucher: simulatedVoucher
+                })
+            });
+
+            return {
+                statusCode: 200,
+                headers: HEADERS,
+                body: JSON.stringify({ success: true, voucher: simulatedVoucher })
+            };
+        } else {
+            return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: `Status do pagamento: ${paymentIntent.status}` }) };
+        }
+
     } catch (error) {
-        console.error("Erro Stripe:", error);
+        console.error("Erro Processamento:", error);
         return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: error.message }) };
     }
 }

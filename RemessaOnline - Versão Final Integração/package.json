@@ -1,10 +1,6 @@
 {
-  "name": "remessa-online-coris-backend",
+  "name": "remessa-online-backend",
   "version": "1.0.0",
-  "description": "Backend Simplificado",
-  "dependencies": {
-    "stripe": "^14.0.0",
-    "@supabase/supabase-js": "^2.39.0",
-    "xml2js": "^0.6.2"
-  }
+  "description": "Backend Zero Dependencies",
+  "dependencies": {}
 }
