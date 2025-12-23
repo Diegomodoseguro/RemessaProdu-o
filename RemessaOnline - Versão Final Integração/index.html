@@ -26,7 +26,7 @@
         .btn-secondary { background-color: transparent; color: var(--color-remessa-main); border: 1px solid var(--color-remessa-main); }
         header { position: sticky; top: 0; z-index: 50; background: white; box-shadow: 0 3px 14px rgba(0,0,0,0.08); min-height: 80px; display: flex; align-items: center;}
         .form-input, .form-select { border: 1px solid var(--color-border); border-radius: 8px; padding: 10px 16px; width: 100%; background: var(--color-bg-light); color: var(--color-text-title); height: 48px; }
-        .flatpickr-input[readonly] { background-color: var(--color-bg-light); cursor: pointer; }
+        .horizontal-section { background-color: var(--color-remessa-main); color: white; padding: 80px 0; }
         .plan-card { border: 1px solid var(--color-border); border-radius: 12px; transition: all 0.2s; background: white; }
         .plan-card:hover { border-color: var(--color-remessa-main); box-shadow: 0 4px 18px rgba(0,0,0,0.08); }
         .loader { border: 3px solid #e0e0e0; border-top: 3px solid var(--color-remessa-main); border-radius: 50%; width: 20px; height: 20px; animation: spin 0.8s linear infinite; }
@@ -34,7 +34,6 @@
         .modal { transition: opacity 0.3s; }
         .animate-on-scroll { opacity: 0; transform: translateY(20px); transition: 0.6s; }
         .animate-on-scroll.is-visible { opacity: 1; transform: translateY(0); }
-        .horizontal-section { background-color: var(--color-remessa-main); color: white; padding: 80px 0; }
         .StripeElement { background: white; padding: 12px; border: 1px solid var(--color-border); border-radius: 8px; }
         .checkout-grid { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; font-size: 14px; }
     </style>
@@ -86,13 +85,25 @@
                  <div class="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 animate-on-scroll">
                      <div class="text-center mb-10">
                         <h2 class="text-3xl font-bold text-[#000733] mb-3">Simule seu Seguro Viagem</h2>
-                        <p class="text-[#676c72]">Preencha os dados para ver os planos com <strong>15% de desconto</strong>.</p>
+                        <p class="text-[#676c72]">Dados necessários para cálculo preciso da apólice.</p>
                      </div>
                      <form id="quote-form" class="space-y-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div><label class="block text-sm font-semibold mb-2 text-gray-700">Seu Nome</label><input type="text" id="user-name-quote" class="form-input" placeholder="Nome completo" required></div>
                             <div><label class="block text-sm font-semibold mb-2 text-gray-700">Seu E-mail</label><input type="email" id="user-email-quote" class="form-input" placeholder="seu@email.com" required></div>
                         </div>
+                        
+                        <div>
+                            <label class="block text-sm font-semibold mb-2 text-gray-700">Motivo da Viagem</label>
+                            <select id="trip-reason" class="form-select" required>
+                                <option value="" disabled selected>Selecione o motivo</option>
+                                <option value="Turismo">Turismo</option>
+                                <option value="Negócios">Negócios</option>
+                                <option value="Estudos">Estudos</option>
+                                <option value="Outros">Outros</option>
+                            </select>
+                        </div>
+
                         <div>
                             <label class="block text-sm font-semibold mb-2 text-gray-700">Destino Principal</label>
                             <select id="destination" class="form-select" required>
@@ -109,7 +120,6 @@
                         </div>
                         <p id="trip-duration" class="text-sm text-center text-gray-600 font-medium hidden bg-blue-50 py-3 rounded-lg border border-blue-100">Duração: <span id="duration-days" class="font-bold text-blue-600">0</span> dias</p>
                         
-                        <!-- SEÇÃO DE PASSAGEIROS CORRIGIDA -->
                         <div>
                             <label class="block text-sm font-semibold mb-2 text-gray-700">Quantidade de Passageiros</label>
                             <select id="passengers" class="form-select" required>
@@ -122,9 +132,9 @@
                             </select>
                         </div>
                         
-                        <div id="ages-container" class="grid grid-cols-2 md:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                            <!-- Inicia com 1 passageiro (padrão) -->
-                            <div><label class="block text-xs font-bold text-gray-500 mb-1">Idade Pax 1</label><input type="number" id="age-1" class="form-input h-10 age-input" min="0" max="85" required placeholder="Anos"></div>
+                        <!-- ÁREA DINÂMICA DE PASSAGEIROS -->
+                        <div id="pax-data-container" class="space-y-4">
+                            <!-- Gerado via JS -->
                         </div>
 
                         <div id="quote-feedback" class="text-center text-sm hidden p-3 bg-red-50 text-red-600 rounded"></div>
@@ -142,7 +152,6 @@
         </section>
 
         <section id="beneficios" class="py-20 bg-white text-center">
-            <!-- (Conteúdo Benefícios Mantido) -->
             <div class="container mx-auto px-4 max-w-6xl">
                 <h2 class="text-3xl md:text-4xl font-bold text-[#000733] mb-12 animate-on-scroll">Por que escolher a Coris?</h2>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -154,7 +163,6 @@
             </div>
         </section>
 
-        <!-- Footer -->
         <footer class="bg-[#292929] text-gray-400 text-sm pt-12 pb-8 border-t border-gray-800">
             <div class="container mx-auto px-4 max-w-7xl">
                 <div class="flex flex-col md:flex-row justify-between items-center mt-8 pt-8 border-t border-gray-800 gap-4">
@@ -165,7 +173,6 @@
         </footer>
     </main>
     
-    <!-- Modal Checkout (Mantido) -->
     <div id="checkout-modal" class="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-[60] hidden opacity-0 pointer-events-none modal backdrop-blur-sm">
          <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col modal-content">
             <div class="p-6 border-b flex justify-between items-center bg-gray-50"><h2 class="text-xl font-bold text-[#000733]">Finalizar Compra</h2><button id="close-checkout-modal" class="text-2xl text-gray-400 hover:text-gray-600">&times;</button></div>
@@ -177,6 +184,7 @@
                          <div class="checkout-grid">
                              <span class="checkout-label">Plano:</span> <span class="checkout-value" id="checkout-plan-name"></span>
                              <span class="checkout-label">Destino:</span> <span class="checkout-value" id="checkout-destination-name"></span>
+                             <span class="checkout-label">Motivo:</span> <span class="checkout-value" id="checkout-trip-reason"></span>
                              <span class="checkout-label">Período:</span> <span class="checkout-value" id="checkout-dates"></span>
                              <span class="checkout-label">Passageiros:</span> <span class="checkout-value" id="checkout-passengers-count"></span>
                              <span class="checkout-label">Cobertura Médica:</span> <span class="checkout-value" id="checkout-dmh"></span>
@@ -225,7 +233,7 @@
                 <svg class="w-10 h-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
             </div>
             <h2 class="text-2xl font-bold text-[#000733] mb-2">Pedido Efetuado!</h2>
-            <p class="text-gray-600 mb-6">Sua compra foi processada com sucesso.</p>
+            <p class="text-gray-600 mb-6">Sua apólice foi processada.</p>
             <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-6 text-sm text-left">
                 <p class="mb-2 text-[#000733] font-semibold">Próximos passos:</p>
                 <ul class="list-disc pl-5 text-gray-600 space-y-1">
@@ -244,18 +252,54 @@
         let stripe, cardElement, currentQuoteData = {};
         let plans = [];
 
-        // FUNÇÃO DE CÁLCULO DE IDADE (FRONTEND)
-        function calculateTotalPrice(basePrice, ages) {
+        // --- FUNÇÕES DE DATA E IDADE ---
+        function calculateAge(birthDateStr) {
+            const today = new Date();
+            const birthDate = new Date(birthDateStr);
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            return age;
+        }
+
+        function calculateTotalPrice(basePrice, passengers) {
             let total = 0;
-            ages.forEach(age => {
-                const idade = parseInt(age);
+            passengers.forEach(p => {
+                const age = calculateAge(p.nascimento);
                 let multiplier = 1.0; 
-                if (idade >= 66 && idade <= 70) multiplier = 1.25;
-                else if (idade >= 71 && idade <= 80) multiplier = 2.00;
-                else if (idade >= 81 && idade <= 85) multiplier = 3.00;
+                if (age >= 66 && age <= 70) multiplier = 1.25;
+                else if (age >= 71 && age <= 80) multiplier = 2.00;
+                else if (age >= 81 && age <= 85) multiplier = 3.00;
                 total += (basePrice * multiplier);
             });
             return total;
+        }
+
+        function generatePaxFields(count) {
+            const container = document.getElementById('pax-data-container');
+            container.innerHTML = '';
+            for(let i=1; i<=count; i++) {
+                container.innerHTML += `
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <p class="text-xs font-bold text-gray-500 mb-2 uppercase">Passageiro ${i}</p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Data de Nascimento</label>
+                            <input type="date" id="pax-${i}-dob" class="form-input h-10" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Sexo</label>
+                            <select id="pax-${i}-gender" class="form-select h-10" required>
+                                <option value="" disabled selected>Selecione</option>
+                                <option value="M">Masculino</option>
+                                <option value="F">Feminino</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>`;
+            }
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -274,13 +318,11 @@
                 }
             }
 
+            // Inicializar campos para 1 pax
+            generatePaxFields(1);
+
             document.getElementById('passengers').addEventListener('change', (e) => {
-                const count = parseInt(e.target.value);
-                const container = document.getElementById('ages-container');
-                container.innerHTML = '';
-                for(let i=1; i<=count; i++) {
-                    container.innerHTML += `<div><label class="block text-xs font-bold text-gray-500 mb-1">Idade Pax ${i}</label><input type="number" id="age-${i}" class="form-input h-10 age-input" min="0" max="85" required placeholder="Anos"></div>`;
-                }
+                generatePaxFields(parseInt(e.target.value));
             });
 
             document.getElementById('quote-form').addEventListener('submit', async (e) => {
@@ -292,27 +334,42 @@
                 
                 const days = parseInt(document.getElementById('duration-days').textContent) || 7;
                 const paxCount = parseInt(document.getElementById('passengers').value);
+                const tripReason = document.getElementById('trip-reason').value;
                 
-                // CORREÇÃO DO ERRO: Ler idades com verificação
+                // Coletar dados detalhados
+                const paxDetails = [];
                 const ages = [];
+                
                 for(let i=1; i<=paxCount; i++) {
-                    const el = document.getElementById(`age-${i}`);
-                    if(el && el.value) ages.push(parseInt(el.value));
+                    const dob = document.getElementById(`pax-${i}-dob`).value;
+                    const gender = document.getElementById(`pax-${i}-gender`).value;
+                    if(dob && gender) {
+                        paxDetails.push({ nascimento: dob, sexo: gender });
+                        ages.push(calculateAge(dob));
+                    }
+                }
+
+                if(paxDetails.length !== paxCount) {
+                    feedback.textContent = "Preencha a data de nascimento e sexo de todos os passageiros.";
+                    feedback.classList.remove('hidden');
+                    btn.disabled = false; document.getElementById('quote-btn-loader').classList.add('hidden');
+                    return;
                 }
 
                 const destSelect = document.getElementById('destination');
                 
                 currentQuoteData = { 
-                    days, passengers: paxCount, ages, destValue: destSelect.value, destText: destSelect.options[destSelect.selectedIndex].text,
+                    days, passengers: paxCount, paxDetails, ages, destValue: destSelect.value, destText: destSelect.options[destSelect.selectedIndex].text,
                     dateStartDisplay: fpDeparture.input.value, dateEndDisplay: fpReturn.input.value,
-                    email: document.getElementById('user-email-quote').value, name: document.getElementById('user-name-quote').value
+                    email: document.getElementById('user-email-quote').value, name: document.getElementById('user-name-quote').value,
+                    tripReason: tripReason,
+                    dates: { start: document.getElementById('departure-date').value, end: document.getElementById('return-date').value }
                 };
 
                 try {
-                    // Backend busca apenas os planos base (standard)
                     const plansResponse = await fetch('/api/backend', {
                         method: 'POST',
-                        body: JSON.stringify({ action: 'getPlans', destino: currentQuoteData.destValue, dias: days, planType: 'standard' })
+                        body: JSON.stringify({ action: 'getPlans', destino: currentQuoteData.destValue, dias: days, planType: 'standard', idades: ages })
                     });
                     const plansData = await plansResponse.json();
                     
@@ -321,15 +378,15 @@
 
                     supabaseClient.from('remessaonlinesioux_leads').insert([{
                         status: 'cotacao_iniciada', email_usuario: currentQuoteData.email, nome_usuario: currentQuoteData.name,
-                        destino_cotacao: currentQuoteData.destValue, passageiros_cotacao: paxCount, dias_cotacao: days, origem: 'geral_15'
+                        destino_cotacao: currentQuoteData.destValue, passageiros_cotacao: paxCount, dias_cotacao: days, origem: 'geral_15',
+                        motivo_viagem: tripReason 
                     }]).then(({data}) => { if(data) currentQuoteData.leadId = data[0].id; });
 
                     const container = document.getElementById('plans-container');
                     container.innerHTML = '';
                     
-                    // Frontend aplica a matemática de preço e desconto
                     plans = basePlans.map(p => {
-                        const totalBase = calculateTotalPrice(p.basePrice, ages);
+                        const totalBase = calculateTotalPrice(p.basePrice, paxDetails);
                         return { ...p, totalPrice: totalBase };
                     }).filter(p => p.totalPrice > 0);
 
@@ -345,7 +402,7 @@
                                     <ul class="text-sm text-gray-600 space-y-3 mb-6">
                                         <li>✓ DMH: <strong>${plan.dmh}</strong></li>
                                         <li>✓ Bagagem: <strong>${plan.bagagem}</strong></li>
-                                        <li class="text-xs text-gray-500">Cotação para ${ages.length} passageiro(s)</li>
+                                        <li class="text-xs text-gray-500">Cotação para ${paxDetails.length} passageiro(s)</li>
                                     </ul>
                                 </div>
                                 <div class="mt-4 border-t pt-4">
@@ -381,16 +438,26 @@
                 document.getElementById('checkout-dates').textContent = `${currentQuoteData.dateStartDisplay} a ${currentQuoteData.dateEndDisplay}`;
                 document.getElementById('checkout-dmh').textContent = plan.dmh;
                 document.getElementById('checkout-bagagem').textContent = plan.bagagem;
+                document.getElementById('checkout-trip-reason').textContent = currentQuoteData.tripReason;
 
                 document.getElementById('selected-plan-id').value = id;
                 document.getElementById('selected-plan-price-brl').value = price;
 
                 const paxContainer = document.getElementById('passenger-forms');
                 paxContainer.innerHTML = '';
-                for(let i=1; i<=currentQuoteData.passengers; i++) {
-                    const age = currentQuoteData.ages[i-1] || '';
-                    paxContainer.innerHTML += `<div class="border p-4 rounded-lg mb-3 bg-gray-50"><h4 class="text-xs font-bold text-gray-500 mb-3 uppercase">Passageiro ${i} (Idade: ${age})</h4><div class="grid grid-cols-2 gap-3"><input id="pax-${i}-nome" placeholder="Nome Completo" class="form-input text-sm" required><input id="pax-${i}-cpf" placeholder="CPF" class="form-input text-sm" required></div></div>`;
-                }
+                
+                // Preenche formulário de pagamento com dados já capturados
+                currentQuoteData.paxDetails.forEach((p, idx) => {
+                    const i = idx + 1;
+                    paxContainer.innerHTML += `
+                    <div class="border p-4 rounded-lg mb-3 bg-gray-50">
+                        <h4 class="text-xs font-bold text-gray-500 mb-3 uppercase">Passageiro ${i}</h4>
+                        <div class="grid grid-cols-2 gap-3">
+                            <input id="pax-${i}-nome" placeholder="Nome Completo" class="form-input text-sm" required>
+                            <input id="pax-${i}-cpf" placeholder="CPF" class="form-input text-sm" required>
+                        </div>
+                    </div>`;
+                });
             };
 
             document.getElementById('close-checkout-modal').onclick = () => {
@@ -409,7 +476,11 @@
 
                 const passengers = [];
                 for(let i=1; i<=currentQuoteData.passengers; i++) {
-                    passengers.push({ nome: document.getElementById(`pax-${i}-nome`).value, cpf: document.getElementById(`pax-${i}-cpf`).value });
+                    const nome = document.getElementById(`pax-${i}-nome`).value;
+                    const cpf = document.getElementById(`pax-${i}-cpf`).value;
+                    // Recuperar data e sexo salvos anteriormente
+                    const details = currentQuoteData.paxDetails[i-1];
+                    passengers.push({ nome, cpf, nascimento: details.nascimento, sexo: details.sexo });
                 }
 
                 try {
@@ -428,8 +499,11 @@
                             planName: document.getElementById('checkout-plan-name').textContent,
                             amountBRL: parseFloat(document.getElementById('selected-plan-price-brl').value),
                             days: currentQuoteData.days,
+                            dates: currentQuoteData.dates,
                             passengers: passengers,
                             contactPhone: document.getElementById('contact-phone').value,
+                            tripReason: currentQuoteData.tripReason,
+                            destination: currentQuoteData.destValue,
                             comprador: { 
                                 nome: passengers[0].nome, email: currentQuoteData.email, cpf: passengers[0].cpf,
                                 endereco: { 
