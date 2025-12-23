@@ -1,6 +1,7 @@
 {
-  "name": "remessa-online-backend",
+  "name": "remessa-backend",
   "version": "1.0.0",
-  "description": "Backend Zero Dependencies",
-  "dependencies": {}
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0"
+  }
 }

@@ -1,5 +1,5 @@
 [build]
-  command = "" 
+  command = "npm install --no-audit --no-fund"
   functions = "netlify/functions"
   publish = "."
 
