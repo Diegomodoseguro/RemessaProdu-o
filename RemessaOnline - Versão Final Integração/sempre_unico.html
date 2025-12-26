@@ -4,10 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Seguro Viagem Coris | SempreÚnico Remessa Online</title>
-    <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💎</text></svg>">
     
-    <!-- Dependências -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://js.stripe.com/v3/"></script>
@@ -40,7 +38,6 @@
         .StripeElement { background: white; padding: 12px; border: 1px solid var(--color-border); border-radius: 8px; }
         .checkout-grid { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; font-size: 14px; }
         
-        /* Botão Flutuante */
         .floating-whatsapp {
             position: fixed; bottom: 24px; right: 24px;
             background-color: #25D366; color: white;
@@ -77,7 +74,7 @@
     </header>
 
     <main>
-        <!-- Hero Section SempreÚnico (Fundo Escuro) -->
+        <!-- Hero Section SempreÚnico -->
         <section class="horizontal-section relative overflow-hidden">
             <div class="container mx-auto px-4 max-w-7xl relative z-10">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
@@ -171,6 +168,7 @@
             </div>
         </section>
 
+        <!-- Resultados -->
         <section id="quote-results" class="py-16 bg-white hidden">
              <div class="container mx-auto px-4 max-w-6xl">
                  <h2 class="text-3xl font-bold text-[#000733] text-center mb-4">Planos com Condição SempreÚnico (20% OFF)</h2>
@@ -179,6 +177,7 @@
             </div>
         </section>
 
+        <!-- Benefícios -->
         <section id="beneficios" class="py-20 bg-white text-center">
             <div class="container mx-auto px-4 max-w-6xl">
                 <h2 class="text-3xl md:text-4xl font-bold text-[#000733] mb-12 animate-on-scroll">Por que escolher a Coris?</h2>
@@ -236,7 +235,7 @@
             </div>
         </section>
 
-        <!-- Footer Rico (Adicionado conforme solicitado) -->
+        <!-- Footer -->
         <footer class="bg-[#292929] text-gray-400 text-sm pt-12 pb-8 border-t border-gray-800">
             <div class="bg-[#2244FF] py-8 px-4 -mt-12 mb-12">
                 <div class="container mx-auto max-w-7xl flex flex-col md:flex-row justify-between items-center gap-6">
@@ -274,6 +273,14 @@
             </div>
         </footer>
     </main>
+    
+    <!-- Botão Flutuante (Adicionado) -->
+    <a href="https://wa.me/5511996325612" target="_blank" class="floating-whatsapp" aria-label="Falar com Especialista">
+        <div class="flex items-center gap-2">
+            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            <span class="hidden md:inline">Falar com Especialista</span>
+        </div>
+    </a>
     
     <!-- Modal Checkout (Mantido) -->
     <div id="checkout-modal" class="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-[50] hidden opacity-0 pointer-events-none modal backdrop-blur-sm">
@@ -328,20 +335,26 @@
          </div>
     </div>
 
-    <!-- Modal Sucesso (Mantido) -->
+    <!-- Modal Sucesso Atualizado -->
     <div id="success-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[70] hidden opacity-0 pointer-events-none modal backdrop-blur-md">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 text-center relative overflow-hidden">
             <div class="absolute top-0 left-0 w-full h-2 bg-[#2244FF]"></div>
             <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <svg class="w-10 h-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
             </div>
-            <h2 class="text-2xl font-bold text-[#000733] mb-2">Pedido Efetuado!</h2>
-            <p class="text-gray-600 mb-6">Sua apólice foi processada.</p>
+            <h2 class="text-2xl font-bold text-[#000733] mb-2">Pagamento Aprovado!</h2>
+            <p class="text-gray-600 mb-2">Sua apólice foi emitida com sucesso.</p>
+            
+            <div class="bg-gray-100 p-3 rounded-lg mb-6 border border-gray-200">
+                <p class="text-xs text-gray-500 uppercase font-bold mb-1">Voucher Coris</p>
+                <p id="success-voucher-code" class="text-xl font-mono font-bold text-[#2244FF] tracking-wider">...</p>
+            </div>
+
             <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-6 text-sm text-left">
                 <p class="mb-2 text-[#000733] font-semibold">Próximos passos:</p>
                 <ul class="list-disc pl-5 text-gray-600 space-y-1">
                     <li>Em breve você receberá um e-mail de confirmação.</li>
-                    <li>Sua apólice e voucher serão enviados neste e-mail.</li>
+                    <li>Sua apólice (PDF) e voucher estão anexados.</li>
                     <li>Verifique sua caixa de Spam/Lixo Eletrônico.</li>
                     <li>Leia as <a href="condicoesgerais_coris2025.pdf" target="_blank" class="text-blue-600 underline">Condições Gerais</a> do seguro.</li>
                 </ul>
@@ -440,7 +453,6 @@
                 const paxCount = parseInt(document.getElementById('passengers').value);
                 const tripReason = document.getElementById('trip-reason').value;
                 
-                // Coletar dados detalhados
                 const paxDetails = [];
                 const ages = [];
                 
@@ -489,7 +501,6 @@
                     const container = document.getElementById('plans-container');
                     container.innerHTML = '';
                     
-                    // Frontend aplica a matemática de preço e desconto
                     plans = basePlans.map(p => {
                         const totalBase = calculateTotalPrice(p.basePrice, paxDetails);
                         return { ...p, totalPrice: totalBase };
@@ -552,7 +563,6 @@
                 const paxContainer = document.getElementById('passenger-forms');
                 paxContainer.innerHTML = '';
                 
-                // Preenche formulário de pagamento com dados já capturados
                 currentQuoteData.paxDetails.forEach((p, idx) => {
                     const i = idx + 1;
                     paxContainer.innerHTML += `
@@ -584,7 +594,6 @@
                 for(let i=1; i<=currentQuoteData.passengers; i++) {
                     const nome = document.getElementById(`pax-${i}-nome`).value;
                     const cpf = document.getElementById(`pax-${i}-cpf`).value;
-                    // Recuperar data e sexo salvos anteriormente
                     const details = currentQuoteData.paxDetails[i-1];
                     passengers.push({ nome, cpf, nascimento: details.nascimento, sexo: details.sexo });
                 }
@@ -626,10 +635,18 @@
                     });
 
                     const result = await response.json();
-                    if(result.error) throw new Error(result.error);
                     
+                    if(response.status !== 200) {
+                        throw new Error(result.error || "Pagamento recusado.");
+                    }
+                    
+                    // SUCESSO: Mostrar Voucher
                     document.getElementById('checkout-modal').click();
+                    
                     const successModal = document.getElementById('success-modal');
+                    // Injeta o voucher na tela
+                    document.getElementById('success-voucher-code').textContent = result.voucher || 'Voucher Enviado por Email';
+                    
                     successModal.classList.remove('hidden', 'pointer-events-none');
                     setTimeout(() => successModal.classList.add('opacity-100'), 10);
 
@@ -637,6 +654,7 @@
                     console.error(err);
                     feedback.textContent = err.message || "Erro desconhecido";
                     feedback.classList.remove('hidden');
+                    feedback.className = "text-center text-sm p-3 bg-red-50 text-red-600 rounded"; 
                 } finally {
                     btn.disabled = false; btn.textContent = 'Confirmar Pagamento';
                 }
@@ -663,13 +681,5 @@
             document.querySelectorAll('.animate-on-scroll').forEach(el => observer.observe(el));
         });
     </script>
-    
-    <!-- Botão Flutuante (Adicionado) -->
-    <a href="https://wa.me/5511996325612" target="_blank" class="floating-whatsapp" aria-label="Falar com Especialista">
-        <div class="flex items-center gap-2">
-            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-            <span class="hidden md:inline">Falar com Especialista</span>
-        </div>
-    </a>
 </body>
 </html>
