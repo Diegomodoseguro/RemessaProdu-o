@@ -18,29 +18,47 @@
         .sidebar { width: 260px; background: #000733; color: white; height: 100vh; position: fixed; left: 0; top: 0; }
         .main-content { margin-left: 260px; padding: 30px; }
         .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
-        .status-cotacao { background: #e0f2fe; color: #0369a1; } 
-        .status-pago { background: #dcfce7; color: #15803d; } 
-        .status-erro { background: #fee2e2; color: #b91c1c; } 
-        .status-abandonado { background: #f3f4f6; color: #4b5563; }
+        
+        .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .status-cotacao { background: #f3f4f6; color: #6b7280; border: 1px solid #e5e7eb; } 
+        .status-pago { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; } 
+        .status-emitido { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+        .status-erro { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; } 
         
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 50; display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
         .modal-active { display: flex; }
         
         #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000733; z-index: 100; display: flex; align-items: center; justify-content: center; }
         
-        /* Estilos para Tabela Expandida */
-        .table-compact th, .table-compact td { padding: 12px 16px; white-space: nowrap; }
-        .money { font-family: 'Courier New', monospace; font-weight: bold; }
+        .table-compact th { padding: 12px 16px; font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; background: #f9fafb; }
+        .table-compact td { padding: 16px; border-bottom: 1px solid #f3f4f6; }
+        .money { font-family: 'Courier New', monospace; font-weight: 700; }
+
+        /* Estilos para Logs XML */
+        .xml-container { 
+            background-color: #1e293b; 
+            color: #e2e8f0; 
+            font-family: 'Courier New', monospace; 
+            font-size: 12px; 
+            padding: 15px; 
+            border-radius: 8px; 
+            overflow-x: auto; 
+            white-space: pre-wrap;
+            max-height: 300px;
+            border: 1px solid #334155;
+        }
+        .log-step { margin-bottom: 20px; border-left: 2px solid #cbd5e1; padding-left: 15px; }
+        .log-title { font-weight: bold; color: #475569; font-size: 13px; margin-bottom: 5px; text-transform: uppercase; }
+        .log-timestamp { font-size: 11px; color: #94a3b8; margin-bottom: 5px; }
     </style>
 </head>
 <body>
 
-    <!-- Tela de Login (Apenas Senha) -->
+    <!-- Tela de Login -->
     <div id="login-screen">
         <div class="bg-white p-8 rounded-2xl shadow-2xl w-96 text-center">
             <img src="https://cms-cdn-sae1.remessaonline.com.br/Remessa_Online_Azul_Vertical_Principal_3ebe3d3a8d.svg" class="h-10 mx-auto mb-6">
-            <h2 class="text-xl font-bold mb-4 text-gray-800">Acesso Restrito</h2>
+            <h2 class="text-xl font-bold mb-4 text-gray-800">Painel Administrativo</h2>
             <input type="password" id="admin-pass" placeholder="Senha de Acesso" class="w-full border p-3 rounded-lg mb-6 text-center text-lg">
             <button onclick="checkLogin()" class="w-full bg-[#2244FF] text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition">Entrar</button>
             <p id="login-error" class="text-red-500 text-sm mt-3 hidden">Senha incorreta.</p>
@@ -52,11 +70,11 @@
         <div>
             <div class="p-6 flex items-center gap-3 border-b border-gray-800">
                 <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold">R</div>
-                <span class="font-bold text-lg tracking-wide">Admin Panel</span>
+                <span class="font-bold text-lg tracking-wide">Admin</span>
             </div>
             <nav class="mt-6 px-4 space-y-2">
                 <a href="#" onclick="showSection('dashboard')" class="flex items-center gap-3 p-3 rounded-lg bg-blue-900/50 text-white nav-item" id="nav-dashboard"><i class="fa-solid fa-chart-pie w-5"></i> Dashboard</a>
-                <a href="#" onclick="showSection('leads')" class="flex items-center gap-3 p-3 rounded-lg text-gray-400 hover:bg-white/5 hover:text-white transition nav-item" id="nav-leads"><i class="fa-solid fa-list w-5"></i> Leads Detalhados</a>
+                <a href="#" onclick="showSection('leads')" class="flex items-center gap-3 p-3 rounded-lg text-gray-400 hover:bg-white/5 hover:text-white transition nav-item" id="nav-leads"><i class="fa-solid fa-list w-5"></i> Leads & Vendas</a>
                 <a href="#" onclick="showSection('vendas')" class="flex items-center gap-3 p-3 rounded-lg text-gray-400 hover:bg-white/5 hover:text-white transition nav-item" id="nav-vendas"><i class="fa-solid fa-sim-card w-5"></i> Entrega Chips</a>
                 <a href="#" onclick="showSection('config')" class="flex items-center gap-3 p-3 rounded-lg text-gray-400 hover:bg-white/5 hover:text-white transition nav-item" id="nav-config"><i class="fa-solid fa-cog w-5"></i> Configurações</a>
             </nav>
@@ -72,9 +90,14 @@
         <div class="flex justify-between items-center mb-8">
             <div>
                 <h1 class="text-2xl font-bold text-gray-800" id="page-title">Visão Geral</h1>
-                <p class="text-gray-500 text-sm">Controle operacional e financeiro completo.</p>
+                <p class="text-gray-500 text-sm">Monitoramento em tempo real.</p>
             </div>
-            <button onclick="loadData()" class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 shadow-sm transition"><i class="fa-solid fa-sync mr-2"></i> Atualizar</button>
+            <div class="flex gap-3">
+                <div class="bg-white px-4 py-2 rounded-lg border text-sm font-medium text-gray-600 shadow-sm">
+                    Comissão Atual: <span id="display-commission" class="text-green-600 font-bold">...</span>
+                </div>
+                <button onclick="loadData()" class="bg-[#2244FF] text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow-lg transition"><i class="fa-solid fa-sync mr-2"></i> Atualizar</button>
+            </div>
         </div>
 
         <!-- DASHBOARD -->
@@ -84,65 +107,60 @@
                     <p class="text-gray-500 text-xs font-bold uppercase">Total Leads</p>
                     <h3 class="text-3xl font-bold text-gray-800 mt-1" id="kpi-total">0</h3>
                 </div>
-                <div class="card border-l-4 border-yellow-500">
-                    <p class="text-gray-500 text-xs font-bold uppercase">Taxa de Conversão</p>
-                    <h3 class="text-3xl font-bold text-gray-800 mt-1" id="kpi-conversion">0%</h3>
-                </div>
                 <div class="card border-l-4 border-green-500">
                     <p class="text-gray-500 text-xs font-bold uppercase">Vendas Confirmadas</p>
                     <h3 class="text-3xl font-bold text-gray-800 mt-1" id="kpi-sales">0</h3>
                 </div>
                 <div class="card border-l-4 border-purple-500">
-                    <p class="text-gray-500 text-xs font-bold uppercase">Receita Bruta (Total)</p>
+                    <p class="text-gray-500 text-xs font-bold uppercase">Receita Total (Bruta)</p>
                     <h3 class="text-3xl font-bold text-gray-800 mt-1" id="kpi-revenue">R$ 0,00</h3>
+                </div>
+                <div class="card border-l-4 border-emerald-500 bg-emerald-50/50">
+                    <p class="text-emerald-600 text-xs font-bold uppercase">Comissão Estimada (Lucro)</p>
+                    <h3 class="text-3xl font-bold text-emerald-700 mt-1" id="kpi-profit">R$ 0,00</h3>
                 </div>
             </div>
             
-            <!-- Cards Financeiros Extras -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="card bg-gray-50 border border-gray-200">
-                    <h4 class="text-sm font-bold text-gray-600 mb-2">Estimativa Custo Coris (Base)</h4>
-                    <p class="text-2xl font-mono text-gray-800" id="kpi-cost">R$ 0,00</p>
-                    <p class="text-xs text-gray-500 mt-1">*Baseado no cálculo reverso da comissão atual.</p>
-                </div>
-                <div class="card bg-green-50 border border-green-200">
-                    <h4 class="text-sm font-bold text-green-700 mb-2">Estimativa Lucro/Comissão</h4>
-                    <p class="text-2xl font-mono text-green-700 font-bold" id="kpi-profit">R$ 0,00</p>
-                    <p class="text-xs text-green-600 mt-1">*Valor final - Custo Base.</p>
-                </div>
-            </div>
-
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="card"><h3 class="font-bold text-gray-700 mb-4">Funil de Vendas</h3><canvas id="funnelChart"></canvas></div>
-                <div class="card"><h3 class="font-bold text-gray-700 mb-4">Últimas Atividades</h3><div id="recent-activity" class="space-y-3 text-sm max-h-64 overflow-y-auto"></div></div>
+                <div class="card"><h3 class="font-bold text-gray-700 mb-4">Funil de Conversão</h3><canvas id="funnelChart"></canvas></div>
+                <div class="card"><h3 class="font-bold text-gray-700 mb-4">Últimas Vendas</h3><div id="recent-sales" class="space-y-3 text-sm max-h-64 overflow-y-auto"></div></div>
             </div>
         </div>
 
         <!-- LEADS DETALHADOS -->
         <div id="section-leads" class="hidden space-y-6 section-content">
             <div class="card overflow-hidden">
-                <div class="flex justify-between items-center mb-4 px-2">
-                    <h3 class="font-bold text-lg">Gerenciamento Completo</h3>
-                    <input type="text" id="search-leads" placeholder="Buscar por nome, email ou ID..." class="border rounded-lg px-3 py-2 text-sm w-80 shadow-sm focus:ring focus:ring-blue-200 outline-none">
+                <div class="flex justify-between items-center mb-6 px-2">
+                    <h3 class="font-bold text-lg">Listagem de Leads & Vendas</h3>
+                    <div class="flex gap-2">
+                        <select id="filter-status" class="border rounded-lg px-3 py-2 text-sm bg-white shadow-sm outline-none" onchange="renderLeadsTable()">
+                            <option value="all">Todos os Status</option>
+                            <option value="vendas">Apenas Vendas</option>
+                            <option value="cotacao">Apenas Cotações</option>
+                        </select>
+                        <input type="text" id="search-leads" placeholder="Buscar cliente..." class="border rounded-lg px-3 py-2 text-sm w-64 shadow-sm outline-none">
+                    </div>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse table-compact">
-                        <thead class="bg-gray-100 text-gray-600 text-xs uppercase font-bold sticky top-0">
-                            <tr class="border-b border-gray-300">
-                                <th>Data</th>
+                        <thead class="sticky top-0 bg-gray-50 z-10">
+                            <tr class="border-b border-gray-200">
+                                <th>Data Lead</th>
                                 <th>Cliente</th>
-                                <th>Viagem</th>
-                                <th>Plano</th>
-                                <th>Valor Total</th>
-                                <th>Status</th>
-                                <th>Ações</th>
+                                <th>Destino / Viagem</th>
+                                <th>Plano / Voucher</th>
+                                <th class="text-right">Repasse Coris</th>
+                                <th class="text-right">Sua Comissão</th>
+                                <th class="text-right">Total Venda</th>
+                                <th class="text-center">Status</th>
+                                <th class="text-center">Ações</th>
                             </tr>
                         </thead>
                         <tbody id="leads-table-body" class="text-sm text-gray-700 divide-y divide-gray-100"></tbody>
                     </table>
                 </div>
-                <div class="p-4 text-center text-gray-500 text-xs bg-gray-50 border-t">
-                    Mostrando últimos 50 registros. Use a busca para encontrar específicos.
+                <div class="p-4 text-center text-gray-400 text-xs bg-gray-50 border-t">
+                    Ordenado por: Vendas (Valor Maior -> Menor) > Recentes
                 </div>
             </div>
         </div>
@@ -150,14 +168,14 @@
         <!-- VENDAS / CHIPS -->
         <div id="section-vendas" class="hidden space-y-6 section-content">
             <div class="card">
-                <h3 class="font-bold text-lg mb-4">Entrega de Chips eSIM</h3>
+                <h3 class="font-bold text-lg mb-4">Controle de Chips eSIM</h3>
+                <p class="text-sm text-gray-500 mb-6">Envie os vouchers de eSIM para clientes com pagamento confirmado.</p>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse table-compact">
                         <thead class="bg-gray-50 text-gray-600 text-xs uppercase">
                             <tr class="border-b">
                                 <th class="p-4">ID Venda</th>
                                 <th class="p-4">Cliente</th>
-                                <th class="p-4">Contato</th>
                                 <th class="p-4">Plano</th>
                                 <th class="p-4">Status Chip</th>
                                 <th class="p-4">Ação</th>
@@ -173,17 +191,20 @@
         <div id="section-config" class="hidden space-y-6 section-content">
             <div class="card max-w-2xl mx-auto">
                 <h3 class="font-bold text-lg mb-6 text-gray-800 flex items-center gap-2"><i class="fa-solid fa-tags"></i> Precificação e Margem</h3>
-                <div class="bg-blue-50 p-6 rounded-xl border border-blue-100">
-                    <label class="block text-sm font-bold text-blue-900 mb-2">Comissão Adicional (%)</label>
-                    <p class="text-xs text-blue-700 mb-4">Este percentual será somado ao preço base da Coris para formar o preço final do cliente.</p>
+                <div class="bg-blue-50 p-8 rounded-xl border border-blue-100 shadow-sm">
+                    <label class="block text-sm font-bold text-blue-900 mb-3">Definir % de Comissão (Markup)</label>
+                    <p class="text-sm text-blue-700 mb-6 leading-relaxed">
+                        Este percentual é adicionado sobre o preço base da Coris. <br>
+                        Ex: Se Coris custa R$ 100 e você define 40%, o cliente paga R$ 140.
+                    </p>
                     <div class="flex items-center gap-4">
-                        <div class="relative w-40">
-                            <input type="number" id="commission-rate" class="w-full text-2xl font-bold p-3 border border-blue-300 rounded-lg text-center text-blue-900 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="0">
-                            <span class="absolute right-4 top-4 text-blue-400 font-bold">%</span>
+                        <div class="relative w-48">
+                            <input type="number" id="commission-rate" class="w-full text-3xl font-bold p-4 border border-blue-300 rounded-lg text-center text-blue-900 focus:ring-4 focus:ring-blue-200 outline-none" placeholder="0">
+                            <span class="absolute right-6 top-5 text-blue-400 font-bold text-xl">%</span>
                         </div>
-                        <button onclick="saveCommission()" class="bg-blue-600 text-white px-6 py-4 rounded-lg font-bold hover:bg-blue-700 transition flex items-center gap-2 shadow-lg"><i class="fa-solid fa-save"></i> Salvar Comissão</button>
+                        <button onclick="saveCommission()" class="bg-blue-600 text-white px-8 py-4 rounded-lg font-bold hover:bg-blue-700 transition flex items-center gap-3 shadow-lg transform hover:-translate-y-0.5"><i class="fa-solid fa-save"></i> Salvar Alteração</button>
                     </div>
-                    <p id="config-feedback" class="text-sm font-medium mt-3 hidden"></p>
+                    <p id="config-feedback" class="text-sm font-medium mt-4 hidden p-2 rounded"></p>
                 </div>
             </div>
         </div>
@@ -192,107 +213,132 @@
 
     <!-- MODAL DE DETALHES COMPLETO -->
     <div id="action-modal" class="modal-overlay">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden max-h-[90vh] flex flex-col">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl overflow-hidden max-h-[95vh] flex flex-col transform transition-all scale-100">
             <!-- Header Modal -->
-            <div class="bg-[#2244FF] p-5 flex justify-between items-center shrink-0">
+            <div class="bg-[#2244FF] p-6 flex justify-between items-center shrink-0">
                 <div>
-                    <h3 class="text-white font-bold text-lg" id="modal-title">Detalhes do Lead #12345</h3>
-                    <p class="text-blue-200 text-xs" id="modal-date">Criado em: 01/01/2025</p>
+                    <h3 class="text-white font-bold text-xl flex items-center gap-2"><i class="fa-solid fa-passport"></i> Detalhes da Venda</h3>
+                    <p class="text-blue-200 text-sm mt-1" id="modal-lead-info">#ID • Data</p>
                 </div>
-                <button onclick="closeModal()" class="text-white hover:bg-blue-700 p-2 rounded-full transition"><i class="fa-solid fa-times text-xl"></i></button>
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleLogs()" class="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition">
+                        <i class="fa-solid fa-terminal"></i> Ver Logs Coris
+                    </button>
+                    <button onclick="closeModal()" class="text-white hover:bg-white/20 p-2 rounded-full transition"><i class="fa-solid fa-times text-xl"></i></button>
+                </div>
             </div>
             
-            <!-- Body Modal (Scrollable) -->
-            <div class="p-6 overflow-y-auto flex-grow bg-gray-50">
+            <!-- Body Modal -->
+            <div class="p-8 overflow-y-auto flex-grow bg-gray-50/50">
                 <input type="hidden" id="modal-lead-id">
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- SEÇÃO PRINCIPAL (DADOS) -->
+                <div id="modal-main-content" class="grid grid-cols-1 lg:grid-cols-3 gap-8 transition-all">
                     
-                    <!-- Coluna 1: Dados da Viagem -->
-                    <div class="space-y-4">
-                        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                            <h4 class="text-xs font-bold text-gray-500 uppercase mb-3 border-b pb-2">🛫 Dados da Viagem</h4>
-                            <div class="space-y-2 text-sm">
-                                <div class="flex justify-between"><span>Destino:</span> <strong id="modal-dest">Europa</strong></div>
-                                <div class="flex justify-between"><span>Período:</span> <strong id="modal-periodo">10 dias</strong></div>
-                                <div class="flex justify-between"><span>Motivo:</span> <strong id="modal-motivo">Turismo</strong></div>
-                                <div class="flex justify-between"><span>Pax Cotados:</span> <strong id="modal-pax-count">1</strong></div>
+                    <!-- Coluna Esquerda: Dados Principais -->
+                    <div class="lg:col-span-2 space-y-6">
+                        <!-- Dados da Viagem -->
+                        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                            <h4 class="text-xs font-bold text-blue-600 uppercase mb-4 tracking-wider border-b pb-2">✈️ Dados da Viagem</h4>
+                            <div class="grid grid-cols-2 gap-y-4 gap-x-8 text-sm">
+                                <div><span class="block text-gray-400 text-xs mb-1">Destino Principal</span> <strong id="modal-dest" class="text-lg text-gray-800">-</strong></div>
+                                <div><span class="block text-gray-400 text-xs mb-1">Motivo</span> <strong id="modal-motivo" class="text-gray-800">-</strong></div>
+                                <div><span class="block text-gray-400 text-xs mb-1">Duração</span> <strong id="modal-periodo" class="text-gray-800">-</strong></div>
+                                <div><span class="block text-gray-400 text-xs mb-1">Passageiros</span> <strong id="modal-pax-count" class="text-gray-800">-</strong></div>
                             </div>
                         </div>
 
-                        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                            <h4 class="text-xs font-bold text-gray-500 uppercase mb-3 border-b pb-2">👤 Comprador / Contato</h4>
-                            <div class="space-y-2 text-sm">
-                                <div><span class="block text-gray-500 text-xs">Nome:</span> <strong id="modal-nome" class="text-gray-800 block">-</strong></div>
-                                <div><span class="block text-gray-500 text-xs">E-mail:</span> <strong id="modal-email" class="text-gray-800 block">-</strong></div>
-                                <div><span class="block text-gray-500 text-xs">Telefone:</span> <strong id="modal-phone" class="text-gray-800 block">-</strong></div>
+                        <!-- Dados do Cliente -->
+                        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                            <h4 class="text-xs font-bold text-blue-600 uppercase mb-4 tracking-wider border-b pb-2">👤 Titular / Contato</h4>
+                            <div class="grid grid-cols-2 gap-y-4 gap-x-8 text-sm">
+                                <div class="col-span-2"><span class="block text-gray-400 text-xs mb-1">Nome Completo</span> <strong id="modal-nome" class="text-lg text-gray-800">-</strong></div>
+                                <div><span class="block text-gray-400 text-xs mb-1">E-mail</span> <strong id="modal-email" class="text-gray-800">-</strong></div>
+                                <div><span class="block text-gray-400 text-xs mb-1">Telefone</span> <strong id="modal-phone" class="text-gray-800">-</strong></div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Coluna 2: Financeiro e Plano -->
-                    <div class="space-y-4">
-                        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                            <h4 class="text-xs font-bold text-gray-500 uppercase mb-3 border-b pb-2">💰 Financeiro & Plano</h4>
+                    <!-- Coluna Direita: Financeiro e Ações -->
+                    <div class="space-y-6">
+                        <!-- Card Financeiro -->
+                        <div class="bg-white p-5 rounded-xl shadow-md border border-blue-100 relative overflow-hidden">
+                            <div class="absolute top-0 right-0 w-20 h-20 bg-blue-500/5 rounded-full -mr-10 -mt-10"></div>
+                            <h4 class="text-xs font-bold text-gray-500 uppercase mb-4">Resumo Financeiro</h4>
+                            
                             <div class="space-y-3">
-                                <div class="bg-blue-50 p-3 rounded text-center">
-                                    <span class="block text-xs text-blue-600 font-bold uppercase">Valor Total (Venda)</span>
-                                    <span class="block text-2xl font-bold text-[#2244FF]" id="modal-total">R$ 0,00</span>
+                                <div class="flex justify-between items-end border-b border-dashed border-gray-200 pb-3">
+                                    <span class="text-sm text-gray-500">Custo Base (Coris)</span>
+                                    <span class="font-mono text-gray-600 font-bold" id="modal-custo">R$ 0,00</span>
                                 </div>
-                                
-                                <div class="grid grid-cols-2 gap-2 text-xs">
-                                    <div class="bg-gray-50 p-2 rounded">
-                                        <span class="block text-gray-500">Custo Base (Est.)</span>
-                                        <strong class="text-gray-700" id="modal-custo">R$ 0,00</strong>
-                                    </div>
-                                    <div class="bg-green-50 p-2 rounded">
-                                        <span class="block text-green-600">Margem (Est.)</span>
-                                        <strong class="text-green-700" id="modal-margem">R$ 0,00</strong>
-                                    </div>
+                                <div class="flex justify-between items-end border-b border-dashed border-gray-200 pb-3">
+                                    <span class="text-sm text-green-600 font-bold">Sua Comissão</span>
+                                    <span class="font-mono text-green-600 font-bold text-lg" id="modal-margem">R$ 0,00</span>
                                 </div>
-
-                                <div class="pt-2 text-sm">
-                                    <div class="flex justify-between"><span>Plano:</span> <strong id="modal-plano">-</strong></div>
-                                    <div class="flex justify-between mt-1"><span>Voucher:</span> <code id="modal-voucher" class="bg-gray-100 px-2 py-0.5 rounded text-blue-600 font-bold">-</code></div>
+                                <div class="flex justify-between items-end pt-2">
+                                    <span class="text-sm text-gray-800 font-bold">Total Venda</span>
+                                    <span class="font-mono text-[#2244FF] font-bold text-2xl" id="modal-total">R$ 0,00</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                            <h4 class="text-xs font-bold text-gray-500 uppercase mb-3 border-b pb-2">⚙️ Status & Ações</h4>
-                            <div class="space-y-3">
-                                <div>
-                                    <label class="block text-xs font-bold mb-1">Status Atual</label>
-                                    <select id="modal-status" class="w-full border rounded p-2 text-sm bg-gray-50">
-                                        <option value="cotacao_iniciada">🟡 Cotação Iniciada (Abandonado)</option>
-                                        <option value="pagamento_processado">🟢 Pagamento Aprovado</option>
-                                        <option value="emitido">✅ Emitido (Concluído)</option>
-                                        <option value="erro_emissao">🔴 Erro na Emissão</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="bg-green-50 p-3 rounded border border-green-200">
-                                    <label class="block text-xs font-bold text-green-800 mb-1">Chip eSIM</label>
-                                    <div class="flex gap-2">
-                                        <input type="text" id="modal-chip" class="flex-1 border p-2 rounded text-sm" placeholder="Cole o código do eSIM aqui">
-                                        <button onclick="sendWhatsApp()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-sm font-bold flex items-center gap-1">
-                                            <i class="fa-brands fa-whatsapp"></i> Enviar
-                                        </button>
-                                    </div>
+                        <!-- Status e Chip -->
+                        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                            <h4 class="text-xs font-bold text-gray-500 uppercase mb-4">Gestão do Pedido</h4>
+                            
+                            <div class="mb-4">
+                                <label class="block text-xs font-bold mb-1 text-gray-600">Status do Pedido</label>
+                                <select id="modal-status" class="w-full border border-gray-300 rounded-lg p-2 text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
+                                    <option value="cotacao_iniciada">🟡 Cotação (Abandonado)</option>
+                                    <option value="pagamento_processado">🟢 Pagamento Aprovado</option>
+                                    <option value="emitido">✅ Emitido / Concluído</option>
+                                    <option value="erro_emissao">🔴 Erro na Emissão</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="block text-xs font-bold mb-1 text-gray-600">Voucher Coris</label>
+                                <input type="text" id="modal-voucher" class="w-full border border-gray-300 rounded-lg p-2 text-sm bg-gray-50 font-mono text-blue-600 font-bold" readonly>
+                            </div>
+                            
+                            <div class="bg-green-50 p-3 rounded-lg border border-green-200">
+                                <label class="block text-xs font-bold text-green-800 mb-1">Entregar Chip eSIM</label>
+                                <div class="flex gap-2">
+                                    <input type="text" id="modal-chip" class="flex-1 border border-green-300 p-2 rounded-lg text-sm focus:outline-none focus:border-green-500" placeholder="Cód. do Chip">
+                                    <button onclick="sendWhatsApp()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-bold shadow-sm transition flex items-center justify-center w-12">
+                                        <i class="fa-brands fa-whatsapp text-lg"></i>
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Lista de Passageiros (Se houver dados salvos no futuro, por enquanto placeholder) -->
-                <!-- A estrutura de banco atual não salva os pax detalhados, mas deixarei o espaço pronto -->
+                <!-- SEÇÃO LOGS DE AUDITORIA (OCULTA POR PADRÃO) -->
+                <div id="modal-logs-content" class="hidden mt-4">
+                    <h4 class="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2"><i class="fa-solid fa-server"></i> Logs de Comunicação com a Coris</h4>
+                    
+                    <div class="space-y-4">
+                        <div class="log-step">
+                            <p class="log-timestamp">Registro do Banco de Dados</p>
+                            <p class="log-title">Resposta da API Coris (Última Interação)</p>
+                            <div class="xml-container" id="modal-xml-response">
+                                <!-- XML será injetado aqui -->
+                                Nenhum log registrado.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
             <!-- Footer Modal -->
-            <div class="bg-gray-100 p-4 border-t flex justify-end shrink-0">
-                <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 font-bold px-4 py-2 mr-2">Cancelar</button>
-                <button onclick="saveLeadChanges()" class="bg-[#2244FF] hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Salvar Alterações</button>
+            <div class="bg-white p-5 border-t border-gray-200 flex justify-between items-center shrink-0">
+                <span class="text-xs text-gray-400">*Alterações de status não estornam pagamentos.</span>
+                <div class="flex gap-3">
+                    <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 font-bold px-4 py-2 transition">Cancelar</button>
+                    <button onclick="saveLeadChanges()" class="bg-[#2244FF] hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-lg transform hover:-translate-y-0.5 transition">Salvar Alterações</button>
+                </div>
             </div>
         </div>
     </div>
@@ -304,15 +350,26 @@
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
         
         let allLeads = [];
-        let currentCommission = 0; // Armazena a comissão atual para cálculos
+        let currentCommission = 0; 
         let funnelChartInstance = null;
+
+        const DESTINATIONS = {
+            '1': 'América Latina',
+            '2': 'Brasil',
+            '4': 'Mundo (Exceto EUA)',
+            '5': 'Mundo (Incluindo EUA)'
+        };
+
+        function getDestName(id) {
+            return DESTINATIONS[id] || id || 'Desconhecido';
+        }
 
         function checkLogin() {
             const p = document.getElementById('admin-pass').value;
             if(p === 'ModoSeguro2025') {
                 document.getElementById('login-screen').style.display = 'none';
-                loadConfig(); // Carrega a comissão primeiro
-                loadData();   // Depois os dados
+                loadConfig(); 
+                loadData();   
             } else {
                 document.getElementById('login-error').classList.remove('hidden');
             }
@@ -322,12 +379,10 @@
         function showSection(id) {
             document.querySelectorAll('.section-content').forEach(d => d.classList.add('hidden'));
             document.querySelectorAll('.nav-item').forEach(n => { n.classList.remove('bg-blue-900/50', 'text-white'); n.classList.add('text-gray-400'); });
-            
             document.getElementById(`section-${id}`).classList.remove('hidden');
             document.getElementById(`nav-${id}`).classList.add('bg-blue-900/50', 'text-white');
             document.getElementById(`nav-${id}`).classList.remove('text-gray-400');
-            
-            const titles = { 'dashboard': 'Visão Geral', 'leads': 'Gerenciamento de Leads', 'vendas': 'Controle de Chips', 'config': 'Configurações' };
+            const titles = { 'dashboard': 'Visão Geral', 'leads': 'Leads & Vendas', 'vendas': 'Entrega de Chips', 'config': 'Configurações' };
             document.getElementById('page-title').innerText = titles[id];
         }
 
@@ -335,6 +390,7 @@
             const { data } = await supabaseClient.from('app_config').select('value').eq('key', 'commission_rate').single();
             if (data) {
                 document.getElementById('commission-rate').value = data.value;
+                document.getElementById('display-commission').innerText = data.value + '%';
                 currentCommission = parseFloat(data.value) || 0;
             }
         }
@@ -342,25 +398,29 @@
         async function saveCommission() {
             const rate = document.getElementById('commission-rate').value;
             const feedback = document.getElementById('config-feedback');
-            
             const { error } = await supabaseClient.from('app_config').upsert({ key: 'commission_rate', value: rate });
-            
-            feedback.classList.remove('hidden', 'text-red-600', 'text-green-600');
+            feedback.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-green-100', 'text-green-700');
             if(error) {
                 feedback.innerText = "Erro: " + error.message;
-                feedback.classList.add('text-red-600');
+                feedback.classList.add('bg-red-100', 'text-red-700');
             } else {
                 feedback.innerText = "Salvo! Novos preços em vigor.";
-                feedback.classList.add('text-green-600');
+                feedback.classList.add('bg-green-100', 'text-green-700');
                 currentCommission = parseFloat(rate);
-                loadData(); // Recarrega para atualizar cálculos
+                document.getElementById('display-commission').innerText = rate + '%';
+                loadData();
             }
         }
 
         async function loadData() {
             const { data, error } = await supabaseClient.from('remessaonlinesioux_leads').select('*').order('created_at', { ascending: false });
             if(error) { console.error(error); alert('Erro ao conectar ao banco.'); return; }
-            if(data) { allLeads = data; renderDashboard(); renderLeadsTable(); renderSalesTable(); }
+            if(data) { 
+                allLeads = data; 
+                renderDashboard(); 
+                renderLeadsTable(); 
+                renderSalesTable(); 
+            }
         }
 
         function formatMoney(val) {
@@ -373,7 +433,7 @@
             const sales = paidLeads.length;
             const revenue = paidLeads.reduce((acc, curr) => acc + (curr.valor_total || 0), 0);
             
-            // Cálculo Reverso Aproximado: Se Preço = Base * (1 + Comissão%), então Base = Preço / (1 + Comissão%)
+            // Estimativas baseadas na comissão atual
             const estimatedBaseCost = revenue / (1 + (currentCommission / 100));
             const estimatedProfit = revenue - estimatedBaseCost;
 
@@ -383,23 +443,28 @@
             document.getElementById('kpi-conversion').innerText = conversion + '%';
             document.getElementById('kpi-sales').innerText = sales;
             document.getElementById('kpi-revenue').innerText = formatMoney(revenue);
-            document.getElementById('kpi-cost').innerText = formatMoney(estimatedBaseCost);
             document.getElementById('kpi-profit').innerText = formatMoney(estimatedProfit);
             
             const ctx = document.getElementById('funnelChart').getContext('2d');
             if (funnelChartInstance) funnelChartInstance.destroy();
             funnelChartInstance = new Chart(ctx, {
                 type: 'bar',
-                data: { labels: ['Cotações', 'Vendas'], datasets: [{ label: 'Leads', data: [total, sales], backgroundColor: ['#3b82f6', '#22c55e'] }] },
-                options: { responsive: true, scales: { y: { beginAtZero: true } } }
+                data: { labels: ['Cotações', 'Vendas'], datasets: [{ label: 'Leads', data: [total, sales], backgroundColor: ['#3b82f6', '#10b981'], borderRadius: 6 }] },
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { display: false } }, x: { grid: { display: false } } } }
             });
             
-            const act = document.getElementById('recent-activity'); act.innerHTML = '';
-            allLeads.slice(0, 8).forEach(l => {
-                const icon = l.valor_total > 0 ? '<i class="fa-solid fa-dollar-sign text-green-500"></i>' : '<i class="fa-regular fa-user text-gray-400"></i>';
-                act.innerHTML += `<div class="flex justify-between items-center p-2 bg-gray-50 rounded border border-gray-100">
-                    <div class="flex items-center gap-2">${icon} <span class="font-bold text-gray-700">${l.nome_usuario || 'Visitante'}</span></div>
-                    <span class="text-xs text-gray-500">${new Date(l.created_at).toLocaleDateString()}</span>
+            const list = document.getElementById('recent-sales'); list.innerHTML = '';
+            paidLeads.slice(0, 10).forEach(l => {
+                list.innerHTML += `
+                <div class="flex justify-between items-center p-3 bg-green-50 rounded-lg border border-green-100">
+                    <div>
+                        <div class="font-bold text-gray-800">${l.nome_usuario}</div>
+                        <div class="text-xs text-gray-500">${l.plano_nome}</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-bold text-green-700">${formatMoney(l.valor_total)}</div>
+                        <div class="text-xs text-gray-400">${new Date(l.created_at).toLocaleDateString()}</div>
+                    </div>
                 </div>`;
             });
         }
@@ -407,48 +472,79 @@
         function renderLeadsTable() {
             const tb = document.getElementById('leads-table-body'); tb.innerHTML = '';
             const search = document.getElementById('search-leads').value.toLowerCase();
+            const filter = document.getElementById('filter-status').value;
             
-            const filtered = allLeads.filter(l => 
-                (l.nome_usuario || '').toLowerCase().includes(search) || 
-                (l.email_usuario || '').toLowerCase().includes(search) ||
-                l.id.includes(search)
-            );
+            // ORDENAÇÃO AVANÇADA
+            const sortedLeads = [...allLeads].sort((a, b) => {
+                const aPaid = ['pagamento_processado', 'emitido', 'erro_emissao'].includes(a.status) ? 1 : 0;
+                const bPaid = ['pagamento_processado', 'emitido', 'erro_emissao'].includes(b.status) ? 1 : 0;
+                
+                if (aPaid !== bPaid) return bPaid - aPaid; 
+                if (b.valor_total !== a.valor_total) return (b.valor_total || 0) - (a.valor_total || 0); 
+                return new Date(b.created_at) - new Date(a.created_at); 
+            });
+
+            const filtered = sortedLeads.filter(l => {
+                const matchesSearch = (l.nome_usuario || '').toLowerCase().includes(search) || (l.email_usuario || '').toLowerCase().includes(search) || l.id.includes(search);
+                const isSale = ['pagamento_processado', 'emitido', 'erro_emissao'].includes(l.status);
+                
+                if (filter === 'vendas' && !isSale) return false;
+                if (filter === 'cotacao' && isSale) return false;
+                return matchesSearch;
+            });
 
             filtered.forEach(l => {
-                let stClass = 'bg-gray-100 text-gray-500', stText = 'Abandonado';
-                if(l.status === 'pagamento_processado') { stClass = 'bg-green-100 text-green-700'; stText = 'Pago'; }
-                else if(l.status === 'emitido') { stClass = 'bg-green-100 text-green-700 border border-green-300'; stText = 'Emitido'; }
-                else if(l.status === 'erro_emissao') { stClass = 'bg-red-100 text-red-700'; stText = 'Erro Emissão'; }
+                let stClass = 'status-cotacao', stText = 'Abandonado';
+                if(l.status === 'pagamento_processado') { stClass = 'status-pago'; stText = 'Pago'; }
+                else if(l.status === 'emitido') { stClass = 'status-emitido'; stText = 'Emitido'; }
+                else if(l.status === 'erro_emissao') { stClass = 'status-erro'; stText = 'Erro Emissão'; }
+
+                const total = l.valor_total || 0;
+                const base = total > 0 ? total / (1 + (currentCommission / 100)) : 0;
+                const comissao = total - base;
 
                 tb.innerHTML += `
-                <tr class="hover:bg-blue-50/50 border-b transition">
-                    <td class="text-xs text-gray-500">${new Date(l.created_at).toLocaleDateString()} <br> ${new Date(l.created_at).toLocaleTimeString().slice(0,5)}</td>
+                <tr class="hover:bg-blue-50/30 border-b transition group">
+                    <td class="text-xs text-gray-500 font-mono">
+                        ${new Date(l.created_at).toLocaleDateString()}<br>
+                        ${new Date(l.created_at).toLocaleTimeString().slice(0,5)}
+                    </td>
                     <td>
-                        <div class="font-bold text-gray-800">${l.nome_usuario || 'Desconhecido'}</div>
-                        <div class="text-xs text-gray-500">${l.email_usuario || '-'}</div>
+                        <div class="font-bold text-gray-800 text-sm">${l.nome_usuario || 'Desconhecido'}</div>
+                        <div class="text-xs text-gray-400 group-hover:text-blue-500 transition">${l.email_usuario || '-'}</div>
                     </td>
-                    <td class="text-xs">
-                        <div class="font-semibold text-gray-700"><i class="fa-solid fa-plane-departure text-blue-400"></i> Destino: ${l.destino_cotacao}</div>
-                        <div class="text-gray-500">Motivo: ${l.motivo_viagem || '-'}</div>
+                    <td>
+                        <div class="text-xs font-semibold text-gray-700">${getDestName(l.destino_cotacao)}</div>
+                        <div class="text-xs text-gray-500">${l.dias_cotacao || 0} dias • ${l.motivo_viagem || '-'}</div>
                     </td>
-                    <td class="text-xs font-mono text-gray-600">${l.plano_nome || '-'}</td>
-                    <td class="money text-green-600">${l.valor_total ? formatMoney(l.valor_total) : '-'}</td>
-                    <td><span class="px-2 py-1 rounded text-xs font-bold ${stClass}">${stText}</span></td>
-                    <td><button onclick="openModal('${l.id}')" class="bg-white border border-gray-300 hover:bg-blue-50 text-blue-600 w-8 h-8 rounded-full flex items-center justify-center shadow-sm transition"><i class="fa-solid fa-pen"></i></button></td>
+                    <td>
+                        <div class="text-xs font-medium text-gray-800 max-w-[150px] truncate" title="${l.plano_nome}">${l.plano_nome || '-'}</div>
+                        <div class="text-[10px] font-mono text-gray-400">${l.coris_voucher || ''}</div>
+                    </td>
+                    <td class="money text-right text-gray-400 text-xs">${base > 0 ? formatMoney(base) : '-'}</td>
+                    <td class="money text-right text-green-600 text-xs bg-green-50/50 rounded">${comissao > 0 ? formatMoney(comissao) : '-'}</td>
+                    <td class="money text-right text-[#2244FF] font-bold">${total > 0 ? formatMoney(total) : '-'}</td>
+                    <td class="text-center"><span class="status-badge ${stClass}">${stText}</span></td>
+                    <td class="text-center">
+                        <button onclick="openModal('${l.id}')" class="bg-white border border-gray-200 hover:bg-blue-50 hover:border-blue-300 text-blue-600 w-8 h-8 rounded-full flex items-center justify-center shadow-sm transition"><i class="fa-solid fa-eye"></i></button>
+                    </td>
                 </tr>`;
             });
         }
 
         function renderSalesTable() {
             const tb = document.getElementById('sales-table-body'); tb.innerHTML = '';
-            allLeads.filter(l => ['pagamento_processado', 'emitido', 'erro_emissao'].includes(l.status)).forEach(s => {
+            const sales = allLeads.filter(l => ['pagamento_processado', 'emitido', 'erro_emissao'].includes(l.status));
+            
+            sales.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+
+            sales.forEach(s => {
                 tb.innerHTML += `<tr class="hover:bg-gray-50 border-b">
                     <td class="p-4 font-mono text-xs text-gray-500">${s.id.slice(0,8)}...</td>
                     <td class="p-4"><b>${s.nome_usuario}</b></td>
-                    <td class="p-4 text-xs">${s.telefone_usuario || '-'}</td>
                     <td class="p-4 text-xs">${s.plano_nome || 'N/A'}</td>
-                    <td class="p-4">${s.chip_esim ? '<span class="text-green-600 font-bold text-xs"><i class="fa-solid fa-check"></i> Enviado</span>' : '<span class="text-yellow-600 font-bold text-xs"><i class="fa-regular fa-clock"></i> Pendente</span>'}</td>
-                    <td class="p-4"><button onclick="openModal('${s.id}')" class="bg-green-100 hover:bg-green-200 text-green-800 px-3 py-1 rounded font-bold text-xs shadow-sm transition"><i class="fa-brands fa-whatsapp"></i> Enviar</button></td>
+                    <td class="p-4">${s.chip_esim ? '<span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-bold flex items-center w-fit gap-1"><i class="fa-solid fa-check"></i> Enviado</span>' : '<span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-bold flex items-center w-fit gap-1"><i class="fa-regular fa-clock"></i> Pendente</span>'}</td>
+                    <td class="p-4"><button onclick="openModal('${s.id}')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg font-bold text-xs shadow-md transition flex items-center gap-1"><i class="fa-brands fa-whatsapp"></i> Chip</button></td>
                 </tr>`;
             });
         }
@@ -459,23 +555,20 @@
         function openModal(id) {
             currentLead = allLeads.find(l => l.id === id);
             
-            // Preenche dados básicos
             document.getElementById('modal-lead-id').value = id;
-            document.getElementById('modal-title').innerText = `Lead #${id.slice(0,8)}`;
-            document.getElementById('modal-date').innerText = `Criado em: ${new Date(currentLead.created_at).toLocaleString()}`;
+            document.getElementById('modal-lead-info').innerText = `#${id.slice(0,8)} • ${new Date(currentLead.created_at).toLocaleString()}`;
             
-            // Dados Viagem
-            document.getElementById('modal-dest').innerText = currentLead.destino_cotacao || '-';
+            // Dados
+            document.getElementById('modal-dest').innerText = getDestName(currentLead.destino_cotacao);
             document.getElementById('modal-periodo').innerText = (currentLead.dias_cotacao || '0') + ' dias';
             document.getElementById('modal-motivo').innerText = currentLead.motivo_viagem || '-';
             document.getElementById('modal-pax-count').innerText = currentLead.passageiros_cotacao || '1';
 
-            // Dados Contato
             document.getElementById('modal-nome').innerText = currentLead.nome_usuario || '-';
             document.getElementById('modal-email').innerText = currentLead.email_usuario || '-';
             document.getElementById('modal-phone').innerText = currentLead.telefone_usuario || '-';
 
-            // Financeiro (Cálculo Reverso)
+            // Financeiro
             const total = currentLead.valor_total || 0;
             const custo = total > 0 ? total / (1 + (currentCommission / 100)) : 0;
             const margem = total - custo;
@@ -484,15 +577,39 @@
             document.getElementById('modal-custo').innerText = formatMoney(custo);
             document.getElementById('modal-margem').innerText = formatMoney(margem);
             
-            document.getElementById('modal-plano').innerText = currentLead.plano_nome || '-';
-            document.getElementById('modal-voucher').innerText = currentLead.coris_voucher || 'Não gerado';
-
-            // Status e Chip
+            document.getElementById('modal-voucher').value = currentLead.coris_voucher || 'Ainda não gerado';
             document.getElementById('modal-status').value = currentLead.status;
             document.getElementById('modal-chip').value = currentLead.chip_esim || '';
 
+            // XML Logs
+            const xmlContainer = document.getElementById('modal-xml-response');
+            if (currentLead.coris_response_xml) {
+                // Escapa caracteres HTML para exibição segura
+                xmlContainer.innerText = currentLead.coris_response_xml;
+            } else {
+                xmlContainer.innerText = "Nenhum log de resposta XML registrado para este lead.";
+            }
+
+            // Reseta a view
+            document.getElementById('modal-main-content').classList.remove('hidden');
+            document.getElementById('modal-logs-content').classList.add('hidden');
+
             document.getElementById('action-modal').classList.add('modal-active');
         }
+        
+        function toggleLogs() {
+            const main = document.getElementById('modal-main-content');
+            const logs = document.getElementById('modal-logs-content');
+            
+            if (logs.classList.contains('hidden')) {
+                main.classList.add('hidden');
+                logs.classList.remove('hidden');
+            } else {
+                main.classList.remove('hidden');
+                logs.classList.add('hidden');
+            }
+        }
+
         function closeModal() { document.getElementById('action-modal').classList.remove('modal-active'); }
         
         async function saveLeadChanges() {
@@ -501,7 +618,7 @@
             const chip = document.getElementById('modal-chip').value;
             
             const updateData = { status: newStatus, chip_esim: chip };
-            if(chip && !currentLead.status_envio_chip) updateData.status_envio_chip = true; // Marca como enviado se preencheu chip
+            if(chip && !currentLead.status_envio_chip) updateData.status_envio_chip = true; 
 
             await supabaseClient.from('remessaonlinesioux_leads').update(updateData).eq('id', id);
             closeModal(); loadData();
@@ -516,7 +633,7 @@
             const msg = `Olá ${currentLead.nome_usuario.split(' ')[0]}, tudo bem?\n\nCompra confirmada com a Remessa Online & Coris! ✈️\n\nSua apólice já foi enviada por e-mail.\n\n📱 *Aqui está seu Chip eSIM Internacional (2GB):*\nCódigo: *${chip}*\n\nBoa viagem! 🌍`;
             
             window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
-            saveLeadChanges(); // Salva o chip se enviou
+            saveLeadChanges(); 
         }
     </script>
 </body>
