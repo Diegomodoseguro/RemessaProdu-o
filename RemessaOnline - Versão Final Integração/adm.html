@@ -44,12 +44,12 @@
             border-radius: 8px; 
             overflow-x: auto; 
             white-space: pre-wrap;
-            max-height: 300px;
+            max-height: 400px;
             border: 1px solid #334155;
+            margin-top: 10px;
         }
-        .log-step { margin-bottom: 20px; border-left: 2px solid #cbd5e1; padding-left: 15px; }
-        .log-title { font-weight: bold; color: #475569; font-size: 13px; margin-bottom: 5px; text-transform: uppercase; }
-        .log-timestamp { font-size: 11px; color: #94a3b8; margin-bottom: 5px; }
+        .log-section { margin-bottom: 20px; }
+        .log-label { font-weight: bold; color: #64748b; font-size: 12px; text-transform: uppercase; margin-bottom: 5px; display: block; }
     </style>
 </head>
 <body>
@@ -221,10 +221,14 @@
                     <p class="text-blue-200 text-sm mt-1" id="modal-lead-info">#ID • Data</p>
                 </div>
                 <div class="flex items-center gap-3">
-                    <button onclick="toggleLogs()" class="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition">
-                        <i class="fa-solid fa-terminal"></i> Ver Logs Coris
+                    <!-- Botões de Navegação no Modal -->
+                    <button onclick="showTab('main')" id="tab-main" class="bg-white text-blue-700 px-4 py-2 rounded-lg text-sm font-bold shadow transition">
+                        Visão Geral
                     </button>
-                    <button onclick="closeModal()" class="text-white hover:bg-white/20 p-2 rounded-full transition"><i class="fa-solid fa-times text-xl"></i></button>
+                    <button onclick="showTab('logs')" id="tab-logs" class="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition">
+                        <i class="fa-solid fa-code"></i> Logs Técnicos
+                    </button>
+                    <button onclick="closeModal()" class="text-white hover:bg-white/20 p-2 rounded-full transition ml-2"><i class="fa-solid fa-times text-xl"></i></button>
                 </div>
             </div>
             
@@ -232,7 +236,7 @@
             <div class="p-8 overflow-y-auto flex-grow bg-gray-50/50">
                 <input type="hidden" id="modal-lead-id">
                 
-                <!-- SEÇÃO PRINCIPAL (DADOS) -->
+                <!-- SEÇÃO PRINCIPAL (VISÃO GERAL) -->
                 <div id="modal-main-content" class="grid grid-cols-1 lg:grid-cols-3 gap-8 transition-all">
                     
                     <!-- Coluna Esquerda: Dados Principais -->
@@ -276,7 +280,7 @@
                                     <span class="font-mono text-green-600 font-bold text-lg" id="modal-margem">R$ 0,00</span>
                                 </div>
                                 <div class="flex justify-between items-end pt-2">
-                                    <span class="text-sm text-gray-800 font-bold">Total Venda</span>
+                                    <span class="text-sm text-gray-800 font-bold">Total Venda (Pago)</span>
                                     <span class="font-mono text-[#2244FF] font-bold text-2xl" id="modal-total">R$ 0,00</span>
                                 </div>
                             </div>
@@ -314,18 +318,24 @@
                     </div>
                 </div>
 
-                <!-- SEÇÃO LOGS DE AUDITORIA (OCULTA POR PADRÃO) -->
-                <div id="modal-logs-content" class="hidden mt-4">
-                    <h4 class="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2"><i class="fa-solid fa-server"></i> Logs de Comunicação com a Coris</h4>
+                <!-- SEÇÃO LOGS DE AUDITORIA (NOVA) -->
+                <div id="modal-logs-content" class="hidden">
+                    <h4 class="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-server text-blue-600"></i> Auditoria de Comunicação com a Coris
+                    </h4>
+                    <p class="text-sm text-gray-500 mb-6">Abaixo estão os dados técnicos da transação (Response XML) conforme registrado no momento da emissão.</p>
                     
-                    <div class="space-y-4">
-                        <div class="log-step">
-                            <p class="log-timestamp">Registro do Banco de Dados</p>
-                            <p class="log-title">Resposta da API Coris (Última Interação)</p>
+                    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                        <div class="log-section">
+                            <span class="log-label">Resposta da API Coris (XML Bruto)</span>
                             <div class="xml-container" id="modal-xml-response">
                                 <!-- XML será injetado aqui -->
-                                Nenhum log registrado.
+                                Aguardando dados...
                             </div>
+                        </div>
+                        
+                        <div class="mt-4 p-4 bg-yellow-50 border border-yellow-100 rounded-lg text-xs text-yellow-800">
+                            <i class="fa-solid fa-info-circle mr-1"></i> Este log é crucial para diagnosticar falhas de emissão. Se o status for "Erro Emissão", verifique a mensagem de erro contida no XML acima (tags &lt;erro&gt; ou &lt;detail&gt;).
                         </div>
                     </div>
                 </div>
@@ -584,31 +594,48 @@
             // XML Logs
             const xmlContainer = document.getElementById('modal-xml-response');
             if (currentLead.coris_response_xml) {
-                // Escapa caracteres HTML para exibição segura
-                xmlContainer.innerText = currentLead.coris_response_xml;
+                // Formatação simples para XML
+                let formattedXml = currentLead.coris_response_xml.replace(/</g, '\n<');
+                xmlContainer.innerText = formattedXml;
             } else {
                 xmlContainer.innerText = "Nenhum log de resposta XML registrado para este lead.";
             }
 
-            // Reseta a view
-            document.getElementById('modal-main-content').classList.remove('hidden');
-            document.getElementById('modal-logs-content').classList.add('hidden');
+            // Reseta a aba para Main
+            showTab('main');
 
             document.getElementById('action-modal').classList.add('modal-active');
         }
         
-        function toggleLogs() {
+        function showTab(tabName) {
             const main = document.getElementById('modal-main-content');
             const logs = document.getElementById('modal-logs-content');
-            
-            if (logs.classList.contains('hidden')) {
-                main.classList.add('hidden');
-                logs.classList.remove('hidden');
-            } else {
+            const btnMain = document.getElementById('tab-main');
+            const btnLogs = document.getElementById('tab-logs');
+
+            if (tabName === 'main') {
                 main.classList.remove('hidden');
                 logs.classList.add('hidden');
+                
+                btnMain.classList.remove('bg-white/10', 'text-white');
+                btnMain.classList.add('bg-white', 'text-blue-700');
+                
+                btnLogs.classList.add('bg-white/10', 'text-white');
+                btnLogs.classList.remove('bg-white', 'text-blue-700');
+            } else {
+                main.classList.add('hidden');
+                logs.classList.remove('hidden');
+                
+                btnMain.classList.add('bg-white/10', 'text-white');
+                btnMain.classList.remove('bg-white', 'text-blue-700');
+                
+                btnLogs.classList.remove('bg-white/10', 'text-white');
+                btnLogs.classList.add('bg-white', 'text-blue-700');
             }
         }
+        
+        // Remove toggleLogs antigo se existir
+        function toggleLogs() { showTab('logs'); }
 
         function closeModal() { document.getElementById('action-modal').classList.remove('modal-active'); }
         
