@@ -7,9 +7,14 @@ const HEADERS = {
 const { createClient } = require('@supabase/supabase-js');
 let supabase;
 
+// CONFIGURAÇÃO SUPABASE (GARANTIDA)
+// Usa variáveis de ambiente se existirem, senão usa as chaves diretas (igual ao seu adm.html)
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://nklclnadvlqvultatapb.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rbGNsbmFkdmxxdnVsdGF0YXBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM1OTQ1OTUsImV4cCI6MjA3OTE3MDU5NX0.aRINn2McObJn9N4b3fEG262mR92e_MiP60jX13mtxKw';
+
 try {
-    if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
-        supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+    if (SUPABASE_URL && SUPABASE_KEY) {
+        supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     }
 } catch (e) { console.error("Erro Supabase Init:", e); }
 
@@ -58,7 +63,6 @@ function parsePlansFromXML(xmlRaw) {
     if (!rows || rows.length === 0) return [];
 
     for (const row of rows) {
-        // Função auxiliar para extrair valor das colunas <column name="...">valor</column>
         const getCol = (name) => {
             const regex = new RegExp(`<column name="${name}">(.*?)<\/column>`, 'i');
             const match = row.match(regex);
@@ -70,7 +74,6 @@ function parsePlansFromXML(xmlRaw) {
         const precoStr = getCol('preco'); 
 
         if (id && nome && precoStr) {
-            // Converte preço (299,4 -> 299.4)
             let priceClean = precoStr.replace(/\./g, '').replace(',', '.');
             const basePrice = parseFloat(priceClean);
             
@@ -91,16 +94,24 @@ function parsePlansFromXML(xmlRaw) {
     return plans;
 }
 
-// --- 1. BUSCA DE PLANOS (VALIDADO) ---
+// --- 1. BUSCA DE PLANOS (VALIDADO + COMISSÃO GARANTIDA) ---
 async function handleGetPlans({ destino, dias, idades, planType }) {
     try {
+        // --- Lógica de Comissão Conectada ao Banco ---
         let commissionRate = 0;
         if (supabase) {
             const { data } = await supabase.from('app_config').select('value').eq('key', 'commission_rate').single();
-            if (data && data.value) commissionRate = parseFloat(data.value);
+            if (data && data.value) {
+                commissionRate = parseFloat(data.value);
+                console.log(`[Pricing] Aplicando Comissão do Admin: ${commissionRate}%`);
+            } else {
+                console.log(`[Pricing] Nenhuma comissão configurada ou encontrada. Usando 0%.`);
+            }
+        } else {
+            console.warn("[Pricing] Supabase não inicializado. Comissão será 0%.");
         }
 
-        // XML Validado com CDATA + Aspas Simples + Atributo Type
+        // XML Validado (Padrão Postman)
         const innerXML = `
 <execute>
 <param name='login' type='varchar' value='${CORIS_CONFIG.login}' />
@@ -141,7 +152,6 @@ async function handleGetPlans({ destino, dias, idades, planType }) {
         if (allPlans.length === 0) {
             console.error("XML Coris vazio/erro. Resposta bruta:", xmlResponse.substring(0, 500));
             if (xmlResponse.includes("NOK") || xmlResponse.includes("Erro")) {
-                 // Tenta extrair mensagem de erro
                  const errMsg = decodeHtmlEntities(xmlResponse).match(/<detail>(.*?)<\/detail>/)?.[1] || "Erro desconhecido";
                  throw new Error("Erro na Seguradora: " + errMsg);
             }
@@ -156,20 +166,19 @@ async function handleGetPlans({ destino, dias, idades, planType }) {
                 const n = p.nome.toUpperCase();
                 return (n.includes('60') || n.includes('100') || n.includes('150') || n.includes('250') || n.includes('500') || n.includes('1KK'));
             });
-            // Ordena VIPs por preço decrescente (mais completos primeiro)
             filteredPlans.sort((a,b) => b.basePrice - a.basePrice);
         } else {
             filteredPlans = allPlans.filter(p => {
                 const n = p.nome.toUpperCase();
                 return (n.includes('30') || n.includes('60') || n.includes('100')) && !n.includes('1KK');
             });
-            // Ordena Padrão por preço crescente
             filteredPlans.sort((a,b) => a.basePrice - b.basePrice);
         }
 
         if (filteredPlans.length === 0) filteredPlans = allPlans;
         filteredPlans = filteredPlans.slice(0, 6);
 
+        // Aplica a comissão buscada no banco
         const finalPlans = filteredPlans.map(p => ({
             ...p,
             totalPrice: calculateFinalPrice(p.basePrice, idades, commissionRate),
@@ -183,9 +192,12 @@ async function handleGetPlans({ destino, dias, idades, planType }) {
     }
 }
 
+// Cálculo do Preço Final (Base + Margem + Agravo Idade)
 function calculateFinalPrice(basePrice, ages, commissionRate = 0) {
     let total = 0;
+    // Preço Base + % de Comissão do Admin
     const priceWithCommission = basePrice * (1 + (commissionRate / 100));
+    
     ages.forEach(age => {
         const id = parseInt(age);
         let m = 1.0; 
@@ -250,8 +262,6 @@ async function emitirCorisReal(data) {
     let innerContent = '';
     const soapAction = passengers.length === 1 ? 'InsereVoucherIndividualV13' : 'InsereVoucherFamiliarV13';
 
-    // Montagem baseada no JSON do Postman (InsereVoucherIndividualV13)
-    // ATENÇÃO: Os atributos 'type' são obrigatórios!
     if (passengers.length === 1) {
         const p = passengers[0];
         innerContent = `
@@ -305,7 +315,6 @@ async function emitirCorisReal(data) {
 <param name='p3' type='varchar' value='0' />
 </execute>`;
     } else {
-        // Multi Pax / Familiar (Baseado no InsereVoucherFamiliarV13 do Postman)
         let paxParams = '';
         passengers.forEach((p, idx) => {
             const i = idx + 1;
