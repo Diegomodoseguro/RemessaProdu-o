@@ -50,24 +50,27 @@ exports.handler = async (event, context) => {
 // --- PARSER XML ---
 function parsePlansFromXML(xmlRaw) {
     const plans = [];
-    // O retorno pode vir dentro de CDATA ou escapado, decodifica tudo para garantir
     const cleanXML = decodeHtmlEntities(xmlRaw);
     
-    const tables = cleanXML.match(/<Table>([\s\S]*?)<\/Table>/gi);
+    // Captura as linhas da tabela
+    const rows = cleanXML.match(/<row>([\s\S]*?)<\/row>/gi);
 
-    if (!tables || tables.length === 0) return [];
+    if (!rows || rows.length === 0) return [];
 
-    for (const block of tables) {
-        const extract = (tag) => {
-            const match = block.match(new RegExp(`<${tag}>(.*?)<\/${tag}>`, 'i'));
+    for (const row of rows) {
+        // Função auxiliar para extrair valor das colunas <column name="...">valor</column>
+        const getCol = (name) => {
+            const regex = new RegExp(`<column name="${name}">(.*?)<\/column>`, 'i');
+            const match = row.match(regex);
             return match ? match[1] : null;
         };
 
-        const id = extract('id');
-        const nome = extract('nome');
-        const precoStr = extract('preco'); 
+        const id = getCol('id');
+        const nome = getCol('nome');
+        const precoStr = getCol('preco'); 
 
         if (id && nome && precoStr) {
+            // Converte preço (299,4 -> 299.4)
             let priceClean = precoStr.replace(/\./g, '').replace(',', '.');
             const basePrice = parseFloat(priceClean);
             
@@ -79,7 +82,7 @@ function parsePlansFromXML(xmlRaw) {
                 if (n.includes('150')) dmh = 'USD 150.000';
                 if (n.includes('250')) dmh = 'USD 250.000';
                 if (n.includes('500')) dmh = 'USD 500.000';
-                if (n.includes('1MM') || n.includes('BLACK')) dmh = 'USD 1.000.000';
+                if (n.includes('1KK') || n.includes('1MM')) dmh = 'USD 1.000.000';
 
                 plans.push({ id, nome, basePrice, dmh, bagagem: 'USD 1.500', covid: 'USD 10.000' });
             }
@@ -88,7 +91,7 @@ function parsePlansFromXML(xmlRaw) {
     return plans;
 }
 
-// --- 1. BUSCA DE PLANOS (PADRÃO POSTMAN COM TIPOS) ---
+// --- 1. BUSCA DE PLANOS (VALIDADO) ---
 async function handleGetPlans({ destino, dias, idades, planType }) {
     try {
         let commissionRate = 0;
@@ -97,7 +100,7 @@ async function handleGetPlans({ destino, dias, idades, planType }) {
             if (data && data.value) commissionRate = parseFloat(data.value);
         }
 
-        // XML INTERNO COM TIPOS (Conforme Postman)
+        // XML Validado com CDATA + Aspas Simples + Atributo Type
         const innerXML = `
 <execute>
 <param name='login' type='varchar' value='${CORIS_CONFIG.login}' />
@@ -108,7 +111,6 @@ async function handleGetPlans({ destino, dias, idades, planType }) {
 <param name='multi' type='int' value='0' />
 </execute>`;
 
-        // ENVELOPE SOAP COM NAMESPACES CORRETOS (Conforme Postman)
         const soapBody = `<soapenv:Envelope xmlns:soapenv='http://schemas.xmlsoap.org/soap/envelope/' xmlns:tem='http://tempuri.org/'>
 <soapenv:Header/>
 <soapenv:Body>
@@ -120,7 +122,7 @@ async function handleGetPlans({ destino, dias, idades, planType }) {
 </soapenv:Body>
 </soapenv:Envelope>`;
 
-        console.log(`Buscando planos Coris (Padrão Postman)... Destino: ${destino}`);
+        console.log(`Buscando planos Coris... Destino: ${destino}`);
         
         const response = await fetch(CORIS_CONFIG.url, {
             method: 'POST',
@@ -137,12 +139,13 @@ async function handleGetPlans({ destino, dias, idades, planType }) {
         let allPlans = parsePlansFromXML(xmlResponse);
 
         if (allPlans.length === 0) {
-            console.error("XML Coris vazio/erro. Resposta bruta:", xmlResponse.substring(0, 300));
-            // Tenta achar erro dentro do XML
-            if (xmlResponse.includes("NOK") || xmlResponse.includes("Erro") || xmlResponse.includes("Object reference")) {
-                 throw new Error("Erro na Seguradora: Verifique se a senha do Postman está atualizada no código.");
+            console.error("XML Coris vazio/erro. Resposta bruta:", xmlResponse.substring(0, 500));
+            if (xmlResponse.includes("NOK") || xmlResponse.includes("Erro")) {
+                 // Tenta extrair mensagem de erro
+                 const errMsg = decodeHtmlEntities(xmlResponse).match(/<detail>(.*?)<\/detail>/)?.[1] || "Erro desconhecido";
+                 throw new Error("Erro na Seguradora: " + errMsg);
             }
-            throw new Error("Nenhum plano retornado pela Seguradora.");
+            throw new Error("Nenhum plano disponível para esta data/destino.");
         }
 
         let filteredPlans = [];
@@ -151,14 +154,16 @@ async function handleGetPlans({ destino, dias, idades, planType }) {
         if (isVip) {
             filteredPlans = allPlans.filter(p => {
                 const n = p.nome.toUpperCase();
-                return (n.includes('60') || n.includes('100') || n.includes('150') || n.includes('250') || n.includes('500') || n.includes('1MM'));
+                return (n.includes('60') || n.includes('100') || n.includes('150') || n.includes('250') || n.includes('500') || n.includes('1KK'));
             });
+            // Ordena VIPs por preço decrescente (mais completos primeiro)
             filteredPlans.sort((a,b) => b.basePrice - a.basePrice);
         } else {
             filteredPlans = allPlans.filter(p => {
                 const n = p.nome.toUpperCase();
-                return (n.includes('30') || n.includes('60') || n.includes('100')) && !n.includes('1MM');
+                return (n.includes('30') || n.includes('60') || n.includes('100')) && !n.includes('1KK');
             });
+            // Ordena Padrão por preço crescente
             filteredPlans.sort((a,b) => a.basePrice - b.basePrice);
         }
 
