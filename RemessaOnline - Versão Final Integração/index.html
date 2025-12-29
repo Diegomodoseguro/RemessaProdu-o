@@ -319,7 +319,6 @@
         let stripe, cardElement, currentQuoteData = {};
         let plans = [];
 
-        // FUNÇÕES DE DATA E IDADE
         function calculateAge(birthDateStr) {
             const today = new Date();
             const birthDate = new Date(birthDateStr);
@@ -329,19 +328,6 @@
                 age--;
             }
             return age;
-        }
-
-        function calculateTotalPrice(basePrice, passengers) {
-            let total = 0;
-            passengers.forEach(p => {
-                const age = calculateAge(p.nascimento);
-                let multiplier = 1.0; 
-                if (age >= 66 && age <= 70) multiplier = 1.25;
-                else if (age >= 71 && age <= 80) multiplier = 2.00;
-                else if (age >= 81 && age <= 85) multiplier = 3.00;
-                total += (basePrice * multiplier);
-            });
-            return total;
         }
 
         function generatePaxFields(count) {
@@ -385,7 +371,6 @@
                 }
             }
 
-            // Inicializar campos para 1 pax
             generatePaxFields(1);
 
             document.getElementById('passengers').addEventListener('change', (e) => {
@@ -451,10 +436,8 @@
                     const container = document.getElementById('plans-container');
                     container.innerHTML = '';
                     
-                    plans = basePlans.map(p => {
-                        const totalBase = calculateTotalPrice(p.basePrice, paxDetails);
-                        return { ...p, totalPrice: totalBase };
-                    }).filter(p => p.totalPrice > 0);
+                    // CORREÇÃO CRÍTICA: USA O PREÇO JÁ CALCULADO PELO BACKEND (QUE INCLUI COMISSÃO)
+                    plans = basePlans.filter(p => p.totalPrice > 0);
 
                     plans.forEach(plan => {
                         const final = plan.totalPrice * 0.85; // 15% OFF
@@ -604,7 +587,7 @@
                     console.error(err);
                     feedback.textContent = err.message || "Erro desconhecido";
                     feedback.classList.remove('hidden');
-                    feedback.className = "text-center text-sm p-3 bg-red-50 text-red-600 rounded"; // Estilo de erro
+                    feedback.className = "text-center text-sm p-3 bg-red-50 text-red-600 rounded"; 
                 } finally {
                     btn.disabled = false; btn.textContent = 'Confirmar Pagamento';
                 }
