@@ -8,7 +8,6 @@ const { createClient } = require('@supabase/supabase-js');
 let supabase;
 
 // CONFIGURAÇÃO SUPABASE (GARANTIDA)
-// Usa variáveis de ambiente se existirem, senão usa as chaves diretas (igual ao seu adm.html)
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://nklclnadvlqvultatapb.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rbGNsbmFkdmxxdnVsdGF0YXBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM1OTQ1OTUsImV4cCI6MjA3OTE3MDU5NX0.aRINn2McObJn9N4b3fEG262mR92e_MiP60jX13mtxKw';
 
@@ -56,8 +55,6 @@ exports.handler = async (event, context) => {
 function parsePlansFromXML(xmlRaw) {
     const plans = [];
     const cleanXML = decodeHtmlEntities(xmlRaw);
-    
-    // Captura as linhas da tabela
     const rows = cleanXML.match(/<row>([\s\S]*?)<\/row>/gi);
 
     if (!rows || rows.length === 0) return [];
@@ -74,7 +71,10 @@ function parsePlansFromXML(xmlRaw) {
         const precoStr = getCol('preco'); 
 
         if (id && nome && precoStr) {
-            let priceClean = precoStr.replace(/\./g, '').replace(',', '.');
+            // CORREÇÃO CRÍTICA DE FORMATO DE NÚMERO
+            // Remove espaços, remove pontos de milhar, troca vírgula decimal por ponto
+            // Ex: "  1.200,50 " -> "1200.50"
+            let priceClean = precoStr.trim().replace(/\./g, '').replace(',', '.');
             const basePrice = parseFloat(priceClean);
             
             if (!isNaN(basePrice) && basePrice > 0) {
@@ -94,24 +94,31 @@ function parsePlansFromXML(xmlRaw) {
     return plans;
 }
 
-// --- 1. BUSCA DE PLANOS (VALIDADO + COMISSÃO GARANTIDA) ---
+// --- 1. BUSCA DE PLANOS ---
 async function handleGetPlans({ destino, dias, idades, planType }) {
     try {
-        // --- Lógica de Comissão Conectada ao Banco ---
+        // --- 1. BUSCA COMISSÃO NO BANCO (BLINDADA) ---
         let commissionRate = 0;
         if (supabase) {
-            const { data } = await supabase.from('app_config').select('value').eq('key', 'commission_rate').single();
+            const { data, error } = await supabase.from('app_config').select('value').eq('key', 'commission_rate').single();
+            
             if (data && data.value) {
-                commissionRate = parseFloat(data.value);
-                console.log(`[Pricing] Aplicando Comissão do Admin: ${commissionRate}%`);
+                // Tratamento robusto: converte para string, troca vírgula por ponto, remove %
+                let valStr = String(data.value).trim().replace(',', '.').replace('%', '');
+                commissionRate = parseFloat(valStr);
+                
+                if (isNaN(commissionRate)) {
+                    console.warn(`[Pricing] Valor de comissão inválido no banco: ${data.value}. Usando 0%.`);
+                    commissionRate = 0;
+                } else {
+                    console.log(`[Pricing] Comissão carregada: ${commissionRate}%`);
+                }
             } else {
-                console.log(`[Pricing] Nenhuma comissão configurada ou encontrada. Usando 0%.`);
+                console.log(`[Pricing] Comissão não encontrada no banco. Usando padrão 0%.`);
             }
-        } else {
-            console.warn("[Pricing] Supabase não inicializado. Comissão será 0%.");
         }
 
-        // XML Validado (Padrão Postman)
+        // --- 2. CHAMADA CORIS ---
         const innerXML = `
 <execute>
 <param name='login' type='varchar' value='${CORIS_CONFIG.login}' />
@@ -142,10 +149,7 @@ async function handleGetPlans({ destino, dias, idades, planType }) {
         });
 
         const xmlResponse = await response.text();
-        
-        if (!response.ok) {
-            throw new Error(`Erro HTTP ${response.status} da Seguradora.`);
-        }
+        if (!response.ok) throw new Error(`Erro HTTP ${response.status} da Seguradora.`);
 
         let allPlans = parsePlansFromXML(xmlResponse);
 
@@ -158,6 +162,7 @@ async function handleGetPlans({ destino, dias, idades, planType }) {
             throw new Error("Nenhum plano disponível para esta data/destino.");
         }
 
+        // --- 3. FILTROS E CÁLCULO FINAL ---
         let filteredPlans = [];
         const isVip = (planType === 'vip');
 
@@ -179,11 +184,18 @@ async function handleGetPlans({ destino, dias, idades, planType }) {
         filteredPlans = filteredPlans.slice(0, 6);
 
         // Aplica a comissão buscada no banco
-        const finalPlans = filteredPlans.map(p => ({
-            ...p,
-            totalPrice: calculateFinalPrice(p.basePrice, idades, commissionRate),
-            covid: 'USD 10.000'
-        }));
+        const finalPlans = filteredPlans.map(p => {
+            const final = calculateFinalPrice(p.basePrice, idades, commissionRate);
+            // Log de auditoria para o primeiro plano (ajuda a debugar)
+            if (p === filteredPlans[0]) {
+                console.log(`[Pricing Audit] Plano: ${p.nome} | Base Coris: ${p.basePrice} | Comissão: ${commissionRate}% | Final: ${final}`);
+            }
+            return {
+                ...p,
+                totalPrice: final,
+                covid: 'USD 10.000'
+            };
+        });
 
         return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ success: true, plans: finalPlans }) };
 
@@ -192,10 +204,12 @@ async function handleGetPlans({ destino, dias, idades, planType }) {
     }
 }
 
-// Cálculo do Preço Final (Base + Margem + Agravo Idade)
+// CÁLCULO DE PREÇO FINAL (Base + Margem + Agravo)
 function calculateFinalPrice(basePrice, ages, commissionRate = 0) {
     let total = 0;
-    // Preço Base + % de Comissão do Admin
+    
+    // FÓRMULA: Preço com Comissão = Preço Base * (1 + (Taxa / 100))
+    // Ex: 100 * (1 + 0.40) = 140
     const priceWithCommission = basePrice * (1 + (commissionRate / 100));
     
     ages.forEach(age => {
@@ -204,6 +218,8 @@ function calculateFinalPrice(basePrice, ages, commissionRate = 0) {
         if (id >= 66 && id <= 70) m = 1.25; 
         else if (id >= 71 && id <= 80) m = 2.00; 
         else if (id >= 81 && id <= 85) m = 3.00; 
+        
+        // Aplica o preço com comissão multiplicado pelo fator de idade
         total += (priceWithCommission * m);
     });
     return total;
