@@ -5,17 +5,30 @@ const HEADERS = {
 };
 
 const { createClient } = require('@supabase/supabase-js');
-let supabase;
+const { Resend } = require('resend'); // Importa o disparador de e-mail
 
-// CONFIGURAÇÃO SUPABASE (GARANTIDA)
+let supabase;
+let resend;
+
+// 1. CONFIGURAÇÕES
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://nklclnadvlqvultatapb.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rbGNsbmFkdmxxdnVsdGF0YXBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM1OTQ1OTUsImV4cCI6MjA3OTE3MDU5NX0.aRINn2McObJn9N4b3fEG262mR92e_MiP60jX13mtxKw';
+const RESEND_API_KEY = process.env.RESEND_API_KEY || 're_123456789'; // COLOQUE SUA CHAVE DO RESEND AQUI OU NAS VARIAVEIS DO NETLIFY
+
+// URLs úteis para o e-mail
+const LINK_CONDICOES_GERAIS = 'https://seguroremessa.online/condicoesgerais_coris2025.pdf'; // Ajuste se necessário
+const LINK_ABRIR_SINISTRO = 'https://www.coris.com.br/sinistros';
+const TELEFONE_SUPORTE = '+55 11 90742-5892';
 
 try {
     if (SUPABASE_URL && SUPABASE_KEY) {
         supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     }
-} catch (e) { console.error("Erro Supabase Init:", e); }
+    // Inicializa Resend se a chave existir (mesmo que seja dummy para teste local)
+    if (RESEND_API_KEY) {
+        resend = new Resend(RESEND_API_KEY);
+    }
+} catch (e) { console.error("Erro Init:", e); }
 
 const CORIS_CONFIG = {
     url: 'https://ws.coris.com.br/webservice2/service.asmx',
@@ -51,6 +64,32 @@ exports.handler = async (event, context) => {
     }
 };
 
+// --- ENRIQUECIMENTO DE DADOS (USADO TAMBÉM NO EMAIL) ---
+function enrichPlanData(plan) {
+    const nome = (plan.nome || "").toUpperCase();
+    let details = {
+        bagagem: 'USD 1.000',
+        farmacia: 'USD 500',
+        odonto: 'USD 500',
+        traslado_corpo: 'USD 20.000',
+        regresso: 'USD 20.000',
+        cancelamento: 'USD 1.000',
+        morte: 'R$ 30.000'
+    };
+
+    if (nome.includes('30')) {
+        details = { bagagem: 'USD 1.200', farmacia: 'USD 600', odonto: 'USD 600', traslado_corpo: 'USD 30.000', regresso: 'USD 30.000', cancelamento: 'USD 1.000', morte: 'R$ 30.000' };
+    } else if (nome.includes('60')) {
+        details = { bagagem: 'USD 1.500', farmacia: 'USD 1.000', odonto: 'USD 800', traslado_corpo: 'USD 50.000', regresso: 'USD 50.000', cancelamento: 'USD 1.500', morte: 'R$ 50.000' };
+    } else if (nome.includes('100')) {
+        details = { bagagem: 'USD 2.000', farmacia: 'USD 1.000', odonto: 'USD 1.000', traslado_corpo: 'USD 50.000', regresso: 'USD 50.000', cancelamento: 'USD 2.000', morte: 'R$ 50.000' };
+    } else if (nome.includes('250') || nome.includes('500') || nome.includes('1MM') || nome.includes('1KK')) {
+        details = { bagagem: 'USD 3.000', farmacia: 'USD 2.000', odonto: 'USD 2.000', traslado_corpo: 'USD 100.000', regresso: 'USD 100.000', cancelamento: 'USD 3.000', morte: 'R$ 100.000' };
+    }
+
+    return { ...plan, ...details, covid: 'USD 10.000' };
+}
+
 // --- PARSER XML ---
 function parsePlansFromXML(xmlRaw) {
     const plans = [];
@@ -71,9 +110,6 @@ function parsePlansFromXML(xmlRaw) {
         const precoStr = getCol('preco'); 
 
         if (id && nome && precoStr) {
-            // CORREÇÃO CRÍTICA DE FORMATO DE NÚMERO
-            // Remove espaços, remove pontos de milhar, troca vírgula decimal por ponto
-            // Ex: "  1.200,50 " -> "1200.50"
             let priceClean = precoStr.trim().replace(/\./g, '').replace(',', '.');
             const basePrice = parseFloat(priceClean);
             
@@ -87,7 +123,8 @@ function parsePlansFromXML(xmlRaw) {
                 if (n.includes('500')) dmh = 'USD 500.000';
                 if (n.includes('1KK') || n.includes('1MM')) dmh = 'USD 1.000.000';
 
-                plans.push({ id, nome, basePrice, dmh, bagagem: 'USD 1.500', covid: 'USD 10.000' });
+                const rawPlan = { id, nome, basePrice, dmh };
+                plans.push(enrichPlanData(rawPlan));
             }
         }
     }
@@ -97,28 +134,16 @@ function parsePlansFromXML(xmlRaw) {
 // --- 1. BUSCA DE PLANOS ---
 async function handleGetPlans({ destino, dias, idades, planType }) {
     try {
-        // --- 1. BUSCA COMISSÃO NO BANCO (BLINDADA) ---
         let commissionRate = 0;
         if (supabase) {
-            const { data, error } = await supabase.from('app_config').select('value').eq('key', 'commission_rate').single();
-            
+            const { data } = await supabase.from('app_config').select('value').eq('key', 'commission_rate').single();
             if (data && data.value) {
-                // Tratamento robusto: converte para string, troca vírgula por ponto, remove %
                 let valStr = String(data.value).trim().replace(',', '.').replace('%', '');
                 commissionRate = parseFloat(valStr);
-                
-                if (isNaN(commissionRate)) {
-                    console.warn(`[Pricing] Valor de comissão inválido no banco: ${data.value}. Usando 0%.`);
-                    commissionRate = 0;
-                } else {
-                    console.log(`[Pricing] Comissão carregada: ${commissionRate}%`);
-                }
-            } else {
-                console.log(`[Pricing] Comissão não encontrada no banco. Usando padrão 0%.`);
+                if (isNaN(commissionRate)) commissionRate = 0;
             }
         }
 
-        // --- 2. CHAMADA CORIS ---
         const innerXML = `
 <execute>
 <param name='login' type='varchar' value='${CORIS_CONFIG.login}' />
@@ -140,8 +165,6 @@ async function handleGetPlans({ destino, dias, idades, planType }) {
 </soapenv:Body>
 </soapenv:Envelope>`;
 
-        console.log(`Buscando planos Coris... Destino: ${destino}`);
-        
         const response = await fetch(CORIS_CONFIG.url, {
             method: 'POST',
             headers: { 'Content-Type': 'text/xml; charset=utf-8', 'SOAPAction': 'http://tempuri.org/BuscarPlanosNovosV13' },
@@ -154,7 +177,6 @@ async function handleGetPlans({ destino, dias, idades, planType }) {
         let allPlans = parsePlansFromXML(xmlResponse);
 
         if (allPlans.length === 0) {
-            console.error("XML Coris vazio/erro. Resposta bruta:", xmlResponse.substring(0, 500));
             if (xmlResponse.includes("NOK") || xmlResponse.includes("Erro")) {
                  const errMsg = decodeHtmlEntities(xmlResponse).match(/<detail>(.*?)<\/detail>/)?.[1] || "Erro desconhecido";
                  throw new Error("Erro na Seguradora: " + errMsg);
@@ -162,7 +184,6 @@ async function handleGetPlans({ destino, dias, idades, planType }) {
             throw new Error("Nenhum plano disponível para esta data/destino.");
         }
 
-        // --- 3. FILTROS E CÁLCULO FINAL ---
         let filteredPlans = [];
         const isVip = (planType === 'vip');
 
@@ -183,18 +204,9 @@ async function handleGetPlans({ destino, dias, idades, planType }) {
         if (filteredPlans.length === 0) filteredPlans = allPlans;
         filteredPlans = filteredPlans.slice(0, 6);
 
-        // Aplica a comissão buscada no banco
         const finalPlans = filteredPlans.map(p => {
             const final = calculateFinalPrice(p.basePrice, idades, commissionRate);
-            // Log de auditoria para o primeiro plano (ajuda a debugar)
-            if (p === filteredPlans[0]) {
-                console.log(`[Pricing Audit] Plano: ${p.nome} | Base Coris: ${p.basePrice} | Comissão: ${commissionRate}% | Final: ${final}`);
-            }
-            return {
-                ...p,
-                totalPrice: final,
-                covid: 'USD 10.000'
-            };
+            return { ...p, totalPrice: final };
         });
 
         return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ success: true, plans: finalPlans }) };
@@ -204,22 +216,15 @@ async function handleGetPlans({ destino, dias, idades, planType }) {
     }
 }
 
-// CÁLCULO DE PREÇO FINAL (Base + Margem + Agravo)
 function calculateFinalPrice(basePrice, ages, commissionRate = 0) {
     let total = 0;
-    
-    // FÓRMULA: Preço com Comissão = Preço Base * (1 + (Taxa / 100))
-    // Ex: 100 * (1 + 0.40) = 140
     const priceWithCommission = basePrice * (1 + (commissionRate / 100));
-    
     ages.forEach(age => {
         const id = parseInt(age);
         let m = 1.0; 
         if (id >= 66 && id <= 70) m = 1.25; 
         else if (id >= 71 && id <= 80) m = 2.00; 
         else if (id >= 81 && id <= 85) m = 3.00; 
-        
-        // Aplica o preço com comissão multiplicado pelo fator de idade
         total += (priceWithCommission * m);
     });
     return total;
@@ -251,6 +256,20 @@ async function handlePaymentAndEmission(data) {
     let voucherCode = 'PENDENTE', emissionStatus = 'emitido', emissionError = null;
     try {
         voucherCode = await emitirCorisReal(data);
+        
+        // --- ENVIO DE E-MAIL APÓS SUCESSO ---
+        if (voucherCode && voucherCode !== 'PENDENTE') {
+            await sendVoucherEmail({
+                to: comprador.email,
+                name: comprador.nome,
+                planName: planName,
+                voucher: voucherCode,
+                dates: data.dates,
+                passengers: data.passengers,
+                price: amountBRL
+            });
+        }
+
     } catch (e) {
         console.error("Erro Emissão:", e.message);
         emissionStatus = 'erro_emissao'; emissionError = e.message;
@@ -264,6 +283,105 @@ async function handlePaymentAndEmission(data) {
     if (emissionStatus === 'erro_emissao') msg = "Pagamento Aprovado! Voucher será enviado manualmente em breve.";
 
     return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ success: true, voucher: voucherCode, message: msg }) };
+}
+
+// --- FUNÇÃO DE ENVIO DE E-MAIL (NOVA) ---
+async function sendVoucherEmail({ to, name, planName, voucher, dates, passengers, price }) {
+    if (!resend) {
+        console.warn("Resend não configurado. E-mail não enviado.");
+        return;
+    }
+
+    // Enriquece dados do plano para o email
+    const planDetails = enrichPlanData({ nome: planName });
+    
+    // Formata datas
+    const formatDate = (d) => d.split('-').reverse().join('/');
+    const start = formatDate(dates.start);
+    const end = formatDate(dates.end);
+
+    // Lista de Passageiros HTML
+    const paxListHtml = passengers.map(p => 
+        `<li style="margin-bottom: 5px;"><strong>${p.nome}</strong> (CPF: ${p.cpf})</li>`
+    ).join('');
+
+    // HTML DO E-MAIL
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; }
+            .container { max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }
+            .header { background-color: #2244FF; color: white; padding: 20px; text-align: center; }
+            .content { padding: 30px; background-color: #ffffff; }
+            .voucher-box { background-color: #f3f4f6; border: 2px dashed #2244FF; padding: 15px; text-align: center; margin: 20px 0; border-radius: 8px; }
+            .voucher-code { font-size: 24px; font-weight: bold; color: #2244FF; letter-spacing: 2px; }
+            .details-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            .details-table td { padding: 10px; border-bottom: 1px solid #eee; }
+            .footer { background-color: #f9fafb; padding: 20px; text-align: center; font-size: 12px; color: #666; }
+            .btn { display: inline-block; background-color: #2244FF; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 20px; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>Compra Confirmada! ✈️</h1>
+                <p>Sua viagem está protegida pela Coris e Remessa Online.</p>
+            </div>
+            <div class="content">
+                <p>Olá, <strong>${name.split(' ')[0]}</strong>!</p>
+                <p>Obrigado por contratar seu Seguro Viagem conosco. Abaixo estão os detalhes da sua apólice e o seu voucher oficial.</p>
+                
+                <div class="voucher-box">
+                    <p style="margin:0; font-size:12px; text-transform:uppercase; color:#666;">Seu Voucher Coris</p>
+                    <p class="voucher-code">${voucher}</p>
+                </div>
+
+                <h3>📋 Resumo da Viagem</h3>
+                <table class="details-table">
+                    <tr><td><strong>Plano:</strong></td><td>${planName}</td></tr>
+                    <tr><td><strong>Vigência:</strong></td><td>${start} até ${end}</td></tr>
+                    <tr><td><strong>Passageiros:</strong></td><td><ul style="padding-left: 20px; margin: 0;">${paxListHtml}</ul></td></tr>
+                </table>
+
+                <h3>🛡️ Principais Coberturas</h3>
+                <table class="details-table">
+                    <tr><td>Despesa Médica (DMH):</td><td><strong>${planDetails.dmh || 'Conforme Apólice'}</strong></td></tr>
+                    <tr><td>Extravio de Bagagem:</td><td>${planDetails.bagagem}</td></tr>
+                    <tr><td>Cancelamento de Viagem:</td><td>${planDetails.cancelamento}</td></tr>
+                    <tr><td>Covid-19:</td><td>${planDetails.covid}</td></tr>
+                </table>
+
+                <div style="text-align: center; margin-top: 30px;">
+                    <p>Precisa acionar o seguro? Tenha o número do voucher em mãos.</p>
+                    <a href="${LINK_ABRIR_SINISTRO}" class="btn">Abrir Chamado / Sinistro</a>
+                    <p style="margin-top: 15px;"><a href="${LINK_CONDICOES_GERAIS}" style="color: #2244FF;">Baixar Condições Gerais (PDF)</a></p>
+                </div>
+            </div>
+            <div class="footer">
+                <p><strong>Central de Emergência 24h Coris:</strong><br>
+                Brasil: 0800 11 08708<br>
+                Exterior: +55 (11) 2185-9696</p>
+                <p>Dúvidas sobre a compra? <a href="https://wa.me/5511907425892">Fale com nosso Suporte</a></p>
+                <p>Este é um e-mail automático, por favor não responda.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+
+    try {
+        await resend.emails.send({
+            from: 'Seguro Remessa Online <noreply@seguroremessa.online>',
+            to: [to],
+            subject: `Confirmação de Compra - Voucher ${voucher}`,
+            html: htmlContent
+        });
+        console.log(`[Email] Enviado com sucesso para ${to}`);
+    } catch (e) {
+        console.error("[Email] Falha ao enviar:", e);
+    }
 }
 
 // --- EMISSÃO CORRIGIDA (PADRÃO POSTMAN COM TIPOS) ---
