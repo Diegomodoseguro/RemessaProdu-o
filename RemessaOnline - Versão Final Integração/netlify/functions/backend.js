@@ -5,15 +5,24 @@ const HEADERS = {
 };
 
 const { createClient } = require('@supabase/supabase-js');
-const { Resend } = require('resend'); 
+
+// Importação Segura do Resend
+let Resend;
+let resendClient = null;
+
+try {
+    const resendModule = require('resend');
+    Resend = resendModule.Resend;
+} catch (e) {
+    console.warn("[Backend Init] Módulo 'resend' não encontrado. Emails desativados.");
+}
 
 let supabase;
-let resend;
 
 // 1. CONFIGURAÇÕES
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://nklclnadvlqvultatapb.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rbGNsbmFkdmxxdnVsdGF0YXBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM1OTQ1OTUsImV4cCI6MjA3OTE3MDU5NX0.aRINn2McObJn9N4b3fEG262mR92e_MiP60jX13mtxKw';
-const RESEND_API_KEY = process.env.RESEND_API_KEY || 're_123456789'; 
+const RESEND_API_KEY = process.env.RESEND_API_KEY; 
 
 // URLs
 const LINK_CONDICOES_GERAIS = 'https://seguroremessa.online/condicoesgerais_coris2025.pdf';
@@ -21,14 +30,19 @@ const LINK_ABRIR_SINISTRO = 'https://www.coris.com.br/sinistros';
 const TELEFONE_SUPORTE = '+55 11 90742-5892';
 const WHATSAPP_LINK = 'https://wa.me/5511907425892';
 
+// Inicialização
 try {
     if (SUPABASE_URL && SUPABASE_KEY) {
         supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     }
-    if (RESEND_API_KEY) {
-        resend = new Resend(RESEND_API_KEY);
+    
+    if (Resend && RESEND_API_KEY) {
+        resendClient = new Resend(RESEND_API_KEY);
+        console.log("[Backend Init] Resend inicializado com sucesso.");
+    } else {
+        console.log("[Backend Init] Resend não configurado (Falta chave ou módulo).");
     }
-} catch (e) { console.error("Erro Init:", e); }
+} catch (e) { console.error("[Backend Init] Erro fatal na inicialização:", e); }
 
 const CORIS_CONFIG = {
     url: 'https://ws.coris.com.br/webservice2/service.asmx',
@@ -44,14 +58,21 @@ function decodeHtmlEntities(str) {
 }
 
 exports.handler = async (event, context) => {
+    // Tratamento de Preflight (OPTIONS)
     if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: HEADERS, body: '' };
 
     try {
         if (!event.body) throw new Error("Dados não recebidos.");
-        const body = JSON.parse(event.body);
-        const { action } = body;
+        
+        let body;
+        try {
+            body = JSON.parse(event.body);
+        } catch (e) {
+            throw new Error("JSON inválido no corpo da requisição.");
+        }
 
-        console.log(`Ação recebida: ${action}`);
+        const { action } = body;
+        console.log(`[Action] Recebida: ${action}`);
 
         switch (action) {
             case 'getPlans': return await handleGetPlans(body);
@@ -59,8 +80,12 @@ exports.handler = async (event, context) => {
             default: return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'Ação inválida' }) };
         }
     } catch (error) {
-        console.error("Erro Backend:", error);
-        return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: error.message || "Erro interno." }) };
+        console.error("[Erro Handler]", error);
+        return { 
+            statusCode: 500, 
+            headers: HEADERS, 
+            body: JSON.stringify({ error: error.message || "Erro interno no servidor." }) 
+        };
     }
 };
 
@@ -212,6 +237,7 @@ async function handleGetPlans({ destino, dias, idades, planType }) {
         return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ success: true, plans: finalPlans }) };
 
     } catch (e) {
+        console.error("[GetPlans Error]", e);
         return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: `Falha Cotação: ${e.message}` }) };
     }
 }
@@ -235,21 +261,33 @@ async function handlePaymentAndEmission(data) {
     const { leadId, paymentMethodId, amountBRL, comprador, planName, contactPhone, tripReason } = data;
 
     const modoSeguPayload = {
-        "tenant_id": "RODQ19", "tipo": "stripe",
+        "tenant_id": "RODQ19",
+        "tipo": "stripe",
         "cliente": { "nome": comprador.nome, "email": comprador.email, "telefone": contactPhone || "0000000000", "cpf_cnpj": comprador.cpf },
         "enderecos": [{ "tipo": "residencial", "cep": comprador.endereco.cep, "logradouro": comprador.endereco.logradouro, "numero": comprador.endereco.numero, "complemento": comprador.endereco.complemento || "", "bairro": comprador.endereco.bairro, "cidade": comprador.endereco.cidade, "uf": comprador.endereco.uf }],
         "pagamento": {
-            "amount_cents": Math.round(amountBRL * 100), "currency": "brl", "descricao": `Seguro - ${planName}`, "receipt_email": comprador.email,
-            "metadata": { "pedido_id": leadId, "origem": "site_remessa" }, "payment_method_id": paymentMethodId
+            "amount_cents": Math.round(amountBRL * 100),
+            "currency": "brl",
+            "descricao": `Seguro - ${planName}`,
+            "receipt_email": comprador.email,
+            "metadata": { "pedido_id": leadId, "origem": "site_remessa" },
+            "payment_method_id": paymentMethodId
         }
     };
 
     let paymentStatus = 'failed', errorMessage = '';
     try {
         const response = await fetch(MODOSEGU_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(modoSeguPayload) });
-        if (response.ok) paymentStatus = 'succeeded';
-        else { const errJson = await response.json(); errorMessage = errJson.error?.message || errJson.error || "Pagamento recusado."; }
-    } catch (err) { return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: "Erro comunicação Pagamento." }) }; }
+        if (response.ok) {
+            paymentStatus = 'succeeded';
+        } else { 
+            const errJson = await response.json(); 
+            errorMessage = errJson.error?.message || errJson.error || "Pagamento recusado."; 
+        }
+    } catch (err) { 
+        console.error("Erro Conexão Dispatcher:", err);
+        return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: "Erro comunicação Pagamento." }) }; 
+    }
 
     if (paymentStatus !== 'succeeded') return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: errorMessage }) };
 
@@ -257,29 +295,32 @@ async function handlePaymentAndEmission(data) {
     let emissionXml = '';
 
     try {
-        // AQUI: Recebe o objeto { voucher, xml } em vez de só o voucher
+        // Tenta emitir
         const emissionResult = await emitirCorisReal(data);
         voucherCode = emissionResult.voucher;
         emissionXml = emissionResult.xml;
         
-        if (voucherCode && voucherCode !== 'PENDENTE') {
-            await sendVoucherEmail({
-                to: comprador.email,
-                name: comprador.nome,
-                planName: planName,
-                voucher: voucherCode,
-                dates: data.dates,
-                passengers: data.passengers,
-                price: amountBRL
-            });
+        // Tenta enviar e-mail se Resend estiver OK
+        if (voucherCode && voucherCode !== 'PENDENTE' && resendClient) {
+            try {
+                await sendVoucherEmail({
+                    to: comprador.email,
+                    name: comprador.nome,
+                    planName: planName,
+                    voucher: voucherCode,
+                    dates: data.dates,
+                    passengers: data.passengers,
+                    price: amountBRL
+                });
+            } catch (emailErr) {
+                console.error("[Email] Falha no envio (não impede venda):", emailErr);
+            }
         }
 
     } catch (e) {
         console.error("Erro Emissão:", e.message);
         emissionStatus = 'erro_emissao'; 
         emissionError = e.message;
-        // Tenta capturar o XML de erro se estiver disponível no objeto de erro (caso implementado)
-        // ou usa a mensagem de erro
         emissionXml = e.message;
     }
 
@@ -289,7 +330,6 @@ async function handlePaymentAndEmission(data) {
             valor_total: amountBRL,
             plano_nome: planName,
             coris_voucher: voucherCode,
-            // AQUI: Salva o XML real para auditoria no painel Admin
             coris_response_xml: emissionXml || emissionError || 'Sucesso' 
         }).eq('id', leadId);
     }
@@ -300,12 +340,9 @@ async function handlePaymentAndEmission(data) {
     return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ success: true, voucher: voucherCode, message: msg }) };
 }
 
-// --- FUNÇÃO DE ENVIO DE E-MAIL (TEMPLATE PROFISSIONAL) ---
+// --- FUNÇÃO DE ENVIO DE E-MAIL ---
 async function sendVoucherEmail({ to, name, planName, voucher, dates, passengers, price }) {
-    if (!resend) {
-        console.warn("Resend não configurado. E-mail não enviado.");
-        return;
-    }
+    if (!resendClient) return;
 
     const planDetails = enrichPlanData({ nome: planName });
     const formatDate = (d) => d.split('-').reverse().join('/');
@@ -319,124 +356,55 @@ async function sendVoucherEmail({ to, name, planName, voucher, dates, passengers
         </li>`
     ).join('');
 
-    // HTML DO E-MAIL (ESTILO PROFISSIONAL REMESSA + CORIS)
     const htmlContent = `
     <!DOCTYPE html>
     <html lang="pt-BR">
     <head>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
             body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 0; color: #333; }
             .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden; }
             .header { background-color: #2244FF; padding: 30px 20px; text-align: center; }
-            .header img { max-height: 40px; margin-bottom: 15px; }
             .header h1 { color: #ffffff; margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
-            .header p { color: #e0e7ff; margin: 10px 0 0; font-size: 14px; }
             .content { padding: 40px 30px; }
-            .greeting { font-size: 18px; margin-bottom: 20px; color: #111; }
             .voucher-box { background-color: #f0fdf4; border: 1px dashed #22c55e; border-radius: 8px; padding: 20px; text-align: center; margin: 30px 0; }
-            .voucher-label { font-size: 12px; color: #15803d; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; margin-bottom: 8px; }
-            .voucher-code { font-size: 28px; font-weight: 800; color: #166534; letter-spacing: 2px; margin: 0; font-family: 'Courier New', monospace; }
+            .voucher-code { font-size: 28px; font-weight: 800; color: #166534; letter-spacing: 2px; font-family: 'Courier New', monospace; }
             .section-title { font-size: 16px; font-weight: 700; color: #000733; margin: 30px 0 15px; border-bottom: 2px solid #f0f0f0; padding-bottom: 8px; text-transform: uppercase; }
             .info-grid { width: 100%; border-collapse: collapse; }
             .info-grid td { padding: 12px 0; border-bottom: 1px solid #f5f5f5; vertical-align: top; }
-            .info-label { width: 40%; color: #666; font-size: 14px; font-weight: 500; }
-            .info-value { width: 60%; color: #000; font-size: 14px; font-weight: 600; text-align: right; }
-            .coverage-list td { padding: 8px 0; font-size: 14px; }
-            .coverage-label { color: #555; }
-            .coverage-value { font-weight: 700; color: #2244FF; text-align: right; }
-            .action-buttons { margin-top: 40px; text-align: center; }
-            .btn { display: inline-block; padding: 14px 28px; border-radius: 50px; text-decoration: none; font-weight: 700; font-size: 14px; transition: all 0.2s; margin: 5px; }
-            .btn-primary { background-color: #2244FF; color: #ffffff; box-shadow: 0 4px 6px rgba(34, 68, 255, 0.2); }
-            .btn-secondary { background-color: #f3f4f6; color: #333; border: 1px solid #e5e7eb; }
-            .footer { background-color: #f8fafc; padding: 30px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #f1f5f9; }
-            .footer strong { color: #64748b; }
-            .footer a { color: #2244FF; text-decoration: none; }
-            ul { list-style: none; padding: 0; margin: 0; text-align: right; }
+            .btn { display: inline-block; padding: 14px 28px; border-radius: 50px; text-decoration: none; font-weight: 700; font-size: 14px; background-color: #2244FF; color: #ffffff; }
         </style>
     </head>
     <body>
         <div class="container">
-            <div class="header">
-                <h1>Compra Confirmada! ✈️</h1>
-                <p>Sua viagem está protegida pela Coris e Remessa Online.</p>
-            </div>
-            
+            <div class="header"><h1>Compra Confirmada! ✈️</h1></div>
             <div class="content">
-                <p class="greeting">Olá, <strong>${name.split(' ')[0]}</strong>!</p>
-                <p style="color: #555; font-size: 15px;">
-                    Obrigado por confiar na nossa parceria. Seu Seguro Viagem foi emitido com sucesso e sua apólice já está ativa para o período contratado.
-                </p>
-                
-                <div class="voucher-box">
-                    <p class="voucher-label">Seu Voucher Oficial</p>
-                    <p class="voucher-code">${voucher}</p>
-                </div>
-
+                <p>Olá, <strong>${name.split(' ')[0]}</strong>!</p>
+                <div class="voucher-box"><p class="voucher-code">${voucher}</p></div>
                 <div class="section-title">📋 Resumo da Viagem</div>
                 <table class="info-grid">
-                    <tr><td class="info-label">Plano Contratado</td><td class="info-value">${planName}</td></tr>
-                    <tr><td class="info-label">Vigência</td><td class="info-value">${start} até ${end}</td></tr>
-                    <tr><td class="info-label">Passageiros</td><td class="info-value"><ul>${paxListHtml}</ul></td></tr>
+                    <tr><td>Plano</td><td>${planName}</td></tr>
+                    <tr><td>Vigência</td><td>${start} até ${end}</td></tr>
+                    <tr><td>Passageiros</td><td><ul>${paxListHtml}</ul></td></tr>
                 </table>
-
-                <div class="section-title">🛡️ Principais Coberturas</div>
-                <table class="info-grid coverage-list">
-                    <tr><td class="coverage-label">Despesa Médica (DMH)</td><td class="coverage-value">${planDetails.dmh || 'Conforme Apólice'}</td></tr>
-                    <tr><td class="coverage-label">Extravio de Bagagem</td><td class="coverage-value">${planDetails.bagagem}</td></tr>
-                    <tr><td class="coverage-label">Despesas Farmacêuticas</td><td class="coverage-value">${planDetails.farmacia}</td></tr>
-                    <tr><td class="coverage-label">Cancelamento de Viagem</td><td class="coverage-value">${planDetails.cancelamento}</td></tr>
-                    <tr><td class="coverage-label">Proteção Covid-19</td><td class="coverage-value">${planDetails.covid}</td></tr>
-                </table>
-
-                <div class="action-buttons">
-                    <a href="${LINK_ABRIR_SINISTRO}" class="btn btn-primary">Abrir Chamado / Sinistro</a>
-                    <a href="${LINK_CONDICOES_GERAIS}" class="btn btn-secondary">Baixar Condições Gerais (PDF)</a>
-                </div>
-                
-                <p style="text-align: center; margin-top: 25px; font-size: 14px;">
-                    Dúvidas urgentes? Fale com a gente no 
-                    <a href="${WHATSAPP_LINK}" style="color: #25D366; font-weight: bold; text-decoration: none;">WhatsApp</a>.
-                </p>
-            </div>
-
-            <div class="footer">
-                <p style="margin-bottom: 15px;">
-                    <strong>Central de Emergência 24h Coris:</strong><br>
-                    Brasil: 0800 11 08708<br>
-                    Exterior: +55 (11) 2185-9696
-                </p>
-                <p>
-                    Enviado por <strong>Seguro Remessa Online</strong><br>
-                    <a href="https://seguroremessa.online">seguroremessa.online</a>
-                </p>
-                <p style="margin-top: 10px; font-style: italic;">
-                    Este é um e-mail automático, por favor não responda.
-                </p>
+                <div style="text-align:center; margin-top:30px;"><a href="${LINK_ABRIR_SINISTRO}" class="btn">Abrir Chamado</a></div>
             </div>
         </div>
     </body>
-    </html>
-    `;
+    </html>`;
 
-    try {
-        await resend.emails.send({
-            from: 'Seguro Remessa Online <noreply@seguroremessa.online>',
-            to: [to],
-            subject: `Confirmação de Compra - Voucher ${voucher}`,
-            html: htmlContent
-        });
-        console.log(`[Email] Enviado com sucesso para ${to}`);
-    } catch (e) {
-        console.error("[Email] Falha ao enviar:", e);
-    }
+    await resendClient.emails.send({
+        from: 'Seguro Remessa Online <noreply@seguroremessa.online>',
+        to: [to],
+        subject: `Confirmação de Compra - Voucher ${voucher}`,
+        html: htmlContent
+    });
 }
 
-// --- EMISSÃO CORRIGIDA (PADRÃO POSTMAN COM TIPOS) ---
+// --- EMISSÃO CORIS ---
 async function emitirCorisReal(data) {
     const { planId, passengers, dates, comprador, contactPhone } = data;
-    const formatDate = (dateStr) => dateStr.replace(/-/g, '/'); // YYYY/MM/DD
+    const formatDate = (dateStr) => dateStr.replace(/-/g, '/'); 
     const dtInicio = formatDate(dates.start);
     const dtFim = formatDate(dates.end);
     const cleanStr = (s) => s ? s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() : "";
@@ -579,8 +547,6 @@ ${paxParams}
     });
 
     const rawText = await response.text();
-    // AQUI: Salva o XML de resposta real para auditoria
-    // E retorna junto com o voucher
     const cleanResponse = decodeHtmlEntities(rawText);
     const match = cleanResponse.match(/<voucher>(.*?)<\/voucher>/i);
     const voucher = match && match[1] && match[1].trim() !== '' ? match[1] : null;
