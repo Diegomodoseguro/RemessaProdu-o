@@ -5,6 +5,8 @@ const HEADERS = {
 };
 
 const { createClient } = require('@supabase/supabase-js');
+
+// Importação Segura do Resend
 let Resend;
 let resendClient = null;
 
@@ -48,11 +50,10 @@ const CORIS_CONFIG = {
     senha: 'diego@' 
 };
 
-// URL DO MODOSEGU - CORRIGIDA
+// URL DO MODOSEGU - CORRIGIDA PARA INCLUIR O ENDPOINT ESPECÍFICO SE NECESSÁRIO
 let MODOSEGU_BASE = process.env.MODOSEGU_URL || 'https://portalv2.modoseguro.digital/api';
 if (MODOSEGU_BASE.endsWith('/')) MODOSEGU_BASE = MODOSEGU_BASE.slice(0, -1);
 const MODOSEGU_ENDPOINT = MODOSEGU_BASE.includes('/stripe/dispatch') ? MODOSEGU_BASE : `${MODOSEGU_BASE}/stripe/dispatch`;
-
 
 function decodeHtmlEntities(str) {
     if (!str) return "";
@@ -64,15 +65,9 @@ exports.handler = async (event, context) => {
 
     try {
         if (!event.body) throw new Error("Dados não recebidos.");
-        
-        let body;
-        try {
-            body = JSON.parse(event.body);
-        } catch (e) {
-            throw new Error("JSON inválido no corpo da requisição.");
-        }
-
+        const body = JSON.parse(event.body);
         const { action } = body;
+
         console.log(`[Action] Recebida: ${action}`);
 
         switch (action) {
@@ -82,15 +77,11 @@ exports.handler = async (event, context) => {
         }
     } catch (error) {
         console.error("[Erro Handler]", error);
-        return { 
-            statusCode: 500, 
-            headers: HEADERS, 
-            body: JSON.stringify({ error: error.message || "Erro interno no servidor." }) 
-        };
+        return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: error.message || "Erro interno." }) };
     }
 };
 
-// ... [Funções auxiliares mantidas] ...
+// ... [Funções de Parse e GetPlans mantidas iguais] ...
 function enrichPlanData(plan) {
     const nome = (plan.nome || "").toUpperCase();
     let details = { bagagem: 'USD 1.000', farmacia: 'USD 500', odonto: 'USD 500', traslado_corpo: 'USD 20.000', regresso: 'USD 20.000', cancelamento: 'USD 1.000', morte: 'R$ 30.000' };
