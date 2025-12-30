@@ -254,8 +254,13 @@ async function handlePaymentAndEmission(data) {
     if (paymentStatus !== 'succeeded') return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: errorMessage }) };
 
     let voucherCode = 'PENDENTE', emissionStatus = 'emitido', emissionError = null;
+    let emissionXml = '';
+
     try {
-        voucherCode = await emitirCorisReal(data);
+        // AQUI: Recebe o objeto { voucher, xml } em vez de só o voucher
+        const emissionResult = await emitirCorisReal(data);
+        voucherCode = emissionResult.voucher;
+        emissionXml = emissionResult.xml;
         
         if (voucherCode && voucherCode !== 'PENDENTE') {
             await sendVoucherEmail({
@@ -271,11 +276,22 @@ async function handlePaymentAndEmission(data) {
 
     } catch (e) {
         console.error("Erro Emissão:", e.message);
-        emissionStatus = 'erro_emissao'; emissionError = e.message;
+        emissionStatus = 'erro_emissao'; 
+        emissionError = e.message;
+        // Tenta capturar o XML de erro se estiver disponível no objeto de erro (caso implementado)
+        // ou usa a mensagem de erro
+        emissionXml = e.message;
     }
 
     if (supabase) {
-        await supabase.from('remessaonlinesioux_leads').update({ status: emissionStatus, valor_total: amountBRL, plano_nome: planName, coris_voucher: voucherCode, coris_response_xml: emissionError || 'Sucesso' }).eq('id', leadId);
+        await supabase.from('remessaonlinesioux_leads').update({
+            status: emissionStatus,
+            valor_total: amountBRL,
+            plano_nome: planName,
+            coris_voucher: voucherCode,
+            // AQUI: Salva o XML real para auditoria no painel Admin
+            coris_response_xml: emissionXml || emissionError || 'Sucesso' 
+        }).eq('id', leadId);
     }
 
     let msg = "Pagamento Aprovado! Apólice emitida.";
@@ -563,12 +579,18 @@ ${paxParams}
     });
 
     const rawText = await response.text();
+    // AQUI: Salva o XML de resposta real para auditoria
+    // E retorna junto com o voucher
     const cleanResponse = decodeHtmlEntities(rawText);
     const match = cleanResponse.match(/<voucher>(.*?)<\/voucher>/i);
-    if (match && match[1] && match[1].trim() !== '') return match[1];
+    const voucher = match && match[1] && match[1].trim() !== '' ? match[1] : null;
 
-    const errMatch = cleanResponse.match(/<erro>(.*?)<\/erro>/i);
-    const errCode = errMatch ? errMatch[1] : 'Desconhecido';
-    if (errCode && errCode !== '0') throw new Error(`Coris recusou: Erro ${errCode}`);
-    throw new Error("Falha na emissão: Resposta sem voucher.");
+    if (!voucher) {
+        const errMatch = cleanResponse.match(/<erro>(.*?)<\/erro>/i);
+        const errCode = errMatch ? errMatch[1] : 'Desconhecido';
+        if (errCode && errCode !== '0') throw new Error(`Coris recusou: Erro ${errCode}`);
+        throw new Error("Falha na emissão: Resposta sem voucher.");
+    }
+    
+    return { voucher, xml: cleanResponse };
 }
