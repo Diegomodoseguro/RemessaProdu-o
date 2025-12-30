@@ -5,6 +5,8 @@ const HEADERS = {
 };
 
 const { createClient } = require('@supabase/supabase-js');
+
+// Importação Segura do Resend
 let Resend;
 let resendClient = null;
 
@@ -48,7 +50,7 @@ const CORIS_CONFIG = {
     senha: 'diego@' 
 };
 
-// URL DO MODOSEGU - CORRIGIDA
+// URL DO MODOSEGU - CORRIGIDA PARA INCLUIR O ENDPOINT ESPECÍFICO SE NECESSÁRIO
 let MODOSEGU_BASE = process.env.MODOSEGU_URL || 'https://portalv2.modoseguro.digital/api';
 if (MODOSEGU_BASE.endsWith('/')) MODOSEGU_BASE = MODOSEGU_BASE.slice(0, -1);
 const MODOSEGU_ENDPOINT = MODOSEGU_BASE.includes('/stripe/dispatch') ? MODOSEGU_BASE : `${MODOSEGU_BASE}/stripe/dispatch`;
@@ -60,6 +62,7 @@ function decodeHtmlEntities(str) {
 }
 
 exports.handler = async (event, context) => {
+    // Tratamento de Preflight (OPTIONS)
     if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: HEADERS, body: '' };
 
     try {
