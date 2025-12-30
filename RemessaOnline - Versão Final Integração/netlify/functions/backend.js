@@ -50,8 +50,16 @@ const CORIS_CONFIG = {
     senha: 'diego@' 
 };
 
-// URL DO MODOSEGU CORRIGIDA PARA PRODUÇÃO
-const MODOSEGU_URL = process.env.MODOSEGU_URL || 'https://portalv2.modoseguro.digital/api';
+// URL DO MODOSEGU - CORRIGIDA PARA INCLUIR O ENDPOINT ESPECÍFICO SE NECESSÁRIO
+// Se a variável de ambiente não tiver o endpoint completo, adicionamos /stripe/dispatch por segurança
+// Mas permitimos que a variável sobrescreva tudo se necessário
+let MODOSEGU_BASE = process.env.MODOSEGU_URL || 'https://portalv2.modoseguro.digital/api';
+// Remove barra final se existir para evitar duplicidade
+if (MODOSEGU_BASE.endsWith('/')) MODOSEGU_BASE = MODOSEGU_BASE.slice(0, -1);
+
+// Se a URL base não terminar com /stripe/dispatch, assumimos que é a base e adicionamos o endpoint
+const MODOSEGU_ENDPOINT = MODOSEGU_BASE.includes('/stripe/dispatch') ? MODOSEGU_BASE : `${MODOSEGU_BASE}/stripe/dispatch`;
+
 
 function decodeHtmlEntities(str) {
     if (!str) return "";
@@ -89,8 +97,6 @@ exports.handler = async (event, context) => {
         };
     }
 };
-
-// ... [O RESTANTE DO CÓDIGO PERMANECE O MESMO] ...
 
 // --- ENRIQUECIMENTO DE DADOS ---
 function enrichPlanData(plan) {
@@ -263,52 +269,46 @@ function calculateFinalPrice(basePrice, ages, commissionRate = 0) {
 async function handlePaymentAndEmission(data) {
     const { leadId, paymentMethodId, amountBRL, comprador, planName, contactPhone, tripReason } = data;
 
-    // Payload conforme documentação ModoSegu
     const modoSeguPayload = {
-        "tenant_id": "RODQ19", // Confirme se este ID está correto
+        "tenant_id": "RODQ19",
         "tipo": "stripe",
-        "cliente": { 
-            "nome": comprador.nome, 
-            "email": comprador.email, 
-            "telefone": contactPhone || "0000000000", 
-            "cpf_cnpj": comprador.cpf 
-        },
-        "enderecos": [{ 
-            "tipo": "residencial", 
-            "cep": comprador.endereco.cep, 
-            "logradouro": comprador.endereco.logradouro, 
-            "numero": comprador.endereco.numero, 
-            "complemento": comprador.endereco.complemento || "", 
-            "bairro": comprador.endereco.bairro, 
-            "cidade": comprador.endereco.cidade, 
-            "uf": comprador.endereco.uf 
-        }],
+        "cliente": { "nome": comprador.nome, "email": comprador.email, "telefone": contactPhone || "0000000000", "cpf_cnpj": comprador.cpf },
+        "enderecos": [{ "tipo": "residencial", "cep": comprador.endereco.cep, "logradouro": comprador.endereco.logradouro, "numero": comprador.endereco.numero, "complemento": comprador.endereco.complemento || "", "bairro": comprador.endereco.bairro, "cidade": comprador.endereco.cidade, "uf": comprador.endereco.uf }],
         "pagamento": {
-            "amount_cents": Math.round(amountBRL * 100), // Em centavos
+            "amount_cents": Math.round(amountBRL * 100),
             "currency": "brl",
-            "descricao": `Seguro Viagem - ${planName} (Lead ${leadId})`,
+            "descricao": `Seguro - ${planName}`,
             "receipt_email": comprador.email,
-            "metadata": { 
-                "pedido_id": leadId, 
-                "origem": "site_remessa", 
-                "motivo_viagem": tripReason 
-            },
+            "metadata": { "pedido_id": leadId, "origem": "site_remessa" },
             "payment_method_id": paymentMethodId
         }
     };
 
     let paymentStatus = 'failed', errorMessage = '';
+    
+    // LOG DE DEBUG PARA URL
+    console.log(`[ModoSegu] Iniciando pagamento em: ${MODOSEGU_ENDPOINT}`);
+
     try {
-        const response = await fetch(MODOSEGU_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(modoSeguPayload) });
+        const response = await fetch(MODOSEGU_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(modoSeguPayload) });
+        
         if (response.ok) {
             paymentStatus = 'succeeded';
         } else { 
-            const errJson = await response.json(); 
-            errorMessage = errJson.error?.message || errJson.error || "Pagamento recusado."; 
+            // Tenta ler o erro como JSON, se falhar, lê como texto
+            const errText = await response.text();
+            let errJson;
+            try {
+                errJson = JSON.parse(errText);
+                errorMessage = errJson.error?.message || errJson.error || "Pagamento recusado.";
+            } catch (e) {
+                errorMessage = `Erro na API de Pagamento (${response.status}): ${errText.substring(0, 100)}`;
+            }
+            console.error(`[ModoSegu Error] ${errorMessage}`);
         }
     } catch (err) { 
-        console.error("Erro Conexão Dispatcher:", err);
-        return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: "Erro comunicação Pagamento." }) }; 
+        console.error("Erro Conexão Dispatcher:", err.message); // Log mais detalhado do erro de rede
+        return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: `Erro comunicação Pagamento: ${err.message}` }) }; 
     }
 
     if (paymentStatus !== 'succeeded') return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: errorMessage }) };
@@ -317,12 +317,10 @@ async function handlePaymentAndEmission(data) {
     let emissionXml = '';
 
     try {
-        // Tenta emitir
         const emissionResult = await emitirCorisReal(data);
         voucherCode = emissionResult.voucher;
         emissionXml = emissionResult.xml;
         
-        // Tenta enviar e-mail se Resend estiver OK
         if (voucherCode && voucherCode !== 'PENDENTE' && resendClient) {
             try {
                 await sendVoucherEmail({
