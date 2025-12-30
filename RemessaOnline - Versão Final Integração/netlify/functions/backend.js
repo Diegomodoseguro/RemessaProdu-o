@@ -50,11 +50,11 @@ const CORIS_CONFIG = {
     senha: 'diego@' 
 };
 
-// URL DO MODOSEGU - CORRIGIDA PARA INCLUIR O ENDPOINT ESPECÍFICO SE NECESSÁRIO
+// URL DO MODOSEGU - Lógica de correção automática
 let MODOSEGU_BASE = process.env.MODOSEGU_URL || 'https://portalv2.modoseguro.digital/api';
 if (MODOSEGU_BASE.endsWith('/')) MODOSEGU_BASE = MODOSEGU_BASE.slice(0, -1);
+// Se a URL não terminar com /stripe/dispatch, adicionamos
 const MODOSEGU_ENDPOINT = MODOSEGU_BASE.includes('/stripe/dispatch') ? MODOSEGU_BASE : `${MODOSEGU_BASE}/stripe/dispatch`;
-
 
 function decodeHtmlEntities(str) {
     if (!str) return "";
@@ -280,20 +280,16 @@ async function handlePaymentAndEmission(data) {
     };
 
     let paymentStatus = 'failed', errorMessage = '';
-    
-    // LOG DE DEBUG PARA URL
     console.log(`[ModoSegu] Iniciando pagamento em: ${MODOSEGU_ENDPOINT}`);
 
-    // --- BYPASS DE TESTE ---
-    // Se o token for 'tok_visa' (teste padrão do Stripe/Postman), simulamos sucesso para validar o resto
+    // BYPASS DE TESTE PARA POSTMAN (tok_visa)
     if (paymentMethodId === 'tok_visa') {
-        console.log("[ModoSegu] Bypass de Teste ativado para 'tok_visa'. Simulando sucesso.");
+        console.log("[ModoSegu] Bypass de Teste ativado. Simulando sucesso.");
         paymentStatus = 'succeeded';
     } else {
-        // Fluxo Real
+        // FLUXO REAL
         try {
             const response = await fetch(MODOSEGU_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(modoSeguPayload) });
-            
             if (response.ok) {
                 paymentStatus = 'succeeded';
             } else { 
@@ -309,7 +305,6 @@ async function handlePaymentAndEmission(data) {
             }
         } catch (err) { 
             console.error("Erro Conexão Dispatcher:", err.message); 
-            // Retorna o erro detalhado para o frontend/Postman
             return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: `Erro comunicação Pagamento: ${err.message}` }) }; 
         }
     }
