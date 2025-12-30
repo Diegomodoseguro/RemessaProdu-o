@@ -50,7 +50,8 @@ const CORIS_CONFIG = {
     senha: 'diego@' 
 };
 
-const MODOSEGU_URL = process.env.MODOSEGU_URL || 'http://localhost:5020/api/stripe/dispatch';
+// URL DO MODOSEGU CORRIGIDA PARA PRODUÇÃO
+const MODOSEGU_URL = process.env.MODOSEGU_URL || 'https://portalv2.modoseguro.digital/api';
 
 function decodeHtmlEntities(str) {
     if (!str) return "";
@@ -88,6 +89,8 @@ exports.handler = async (event, context) => {
         };
     }
 };
+
+// ... [O RESTANTE DO CÓDIGO PERMANECE O MESMO] ...
 
 // --- ENRIQUECIMENTO DE DADOS ---
 function enrichPlanData(plan) {
