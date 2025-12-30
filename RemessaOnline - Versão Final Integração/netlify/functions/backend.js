@@ -263,17 +263,36 @@ function calculateFinalPrice(basePrice, ages, commissionRate = 0) {
 async function handlePaymentAndEmission(data) {
     const { leadId, paymentMethodId, amountBRL, comprador, planName, contactPhone, tripReason } = data;
 
+    // Payload conforme documentação ModoSegu
     const modoSeguPayload = {
-        "tenant_id": "RODQ19",
+        "tenant_id": "RODQ19", // Confirme se este ID está correto
         "tipo": "stripe",
-        "cliente": { "nome": comprador.nome, "email": comprador.email, "telefone": contactPhone || "0000000000", "cpf_cnpj": comprador.cpf },
-        "enderecos": [{ "tipo": "residencial", "cep": comprador.endereco.cep, "logradouro": comprador.endereco.logradouro, "numero": comprador.endereco.numero, "complemento": comprador.endereco.complemento || "", "bairro": comprador.endereco.bairro, "cidade": comprador.endereco.cidade, "uf": comprador.endereco.uf }],
+        "cliente": { 
+            "nome": comprador.nome, 
+            "email": comprador.email, 
+            "telefone": contactPhone || "0000000000", 
+            "cpf_cnpj": comprador.cpf 
+        },
+        "enderecos": [{ 
+            "tipo": "residencial", 
+            "cep": comprador.endereco.cep, 
+            "logradouro": comprador.endereco.logradouro, 
+            "numero": comprador.endereco.numero, 
+            "complemento": comprador.endereco.complemento || "", 
+            "bairro": comprador.endereco.bairro, 
+            "cidade": comprador.endereco.cidade, 
+            "uf": comprador.endereco.uf 
+        }],
         "pagamento": {
-            "amount_cents": Math.round(amountBRL * 100),
+            "amount_cents": Math.round(amountBRL * 100), // Em centavos
             "currency": "brl",
-            "descricao": `Seguro - ${planName}`,
+            "descricao": `Seguro Viagem - ${planName} (Lead ${leadId})`,
             "receipt_email": comprador.email,
-            "metadata": { "pedido_id": leadId, "origem": "site_remessa" },
+            "metadata": { 
+                "pedido_id": leadId, 
+                "origem": "site_remessa", 
+                "motivo_viagem": tripReason 
+            },
             "payment_method_id": paymentMethodId
         }
     };
