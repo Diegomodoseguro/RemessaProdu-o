@@ -50,11 +50,10 @@ const CORIS_CONFIG = {
     senha: 'diego@' 
 };
 
-// URL DO MODOSEGU - CORRIGIDA PARA INCLUIR O ENDPOINT ESPECÍFICO SE NECESSÁRIO
+// URL DO MODOSEGU
 let MODOSEGU_BASE = process.env.MODOSEGU_URL || 'https://portalv2.modoseguro.digital/api';
 if (MODOSEGU_BASE.endsWith('/')) MODOSEGU_BASE = MODOSEGU_BASE.slice(0, -1);
 const MODOSEGU_ENDPOINT = MODOSEGU_BASE.includes('/stripe/dispatch') ? MODOSEGU_BASE : `${MODOSEGU_BASE}/stripe/dispatch`;
-
 
 function decodeHtmlEntities(str) {
     if (!str) return "";
@@ -209,7 +208,6 @@ async function handlePaymentAndEmission(data) {
         }
     } catch (e) {
         console.error("Erro Emissão:", e.message); emissionStatus = 'erro_emissao'; emissionError = e.message; emissionXml = e.message || e.xml;
-        // Retorna 200 com erro de emissão para o front mostrar a mensagem apropriada, mas loga o erro técnico
         // Se estiver em modo de teste (Postman), retornamos o XML para debug
         if (paymentMethodId === 'tok_visa') {
              return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ success: false, voucher: "ERRO", error_message: e.message, xml_debug: e.xml }) };
@@ -218,8 +216,6 @@ async function handlePaymentAndEmission(data) {
 
     if (supabase) { await supabase.from('remessaonlinesioux_leads').update({ status: emissionStatus, valor_total: amountBRL, plano_nome: planName, coris_voucher: voucherCode, coris_response_xml: emissionXml || emissionError || 'Sucesso' }).eq('id', leadId); }
     
-    // Se houve erro na emissão (mas pagamento ok), retornamos sucesso para o cliente não achar que perdeu dinheiro,
-    // mas o status interno será 'erro_emissao' para tratativa manual.
     let msg = "Pagamento Aprovado! Apólice emitida.";
     if (emissionStatus === 'erro_emissao') msg = "Pagamento Aprovado! Voucher será enviado manualmente em breve.";
 
@@ -241,15 +237,20 @@ async function sendVoucherEmail({ to, name, planName, voucher, dates, passengers
 async function emitirCorisReal(data) {
     const { planId, passengers, dates, comprador, contactPhone } = data;
     
-    // CORREÇÃO CRÍTICA DE DATA: Garante DD/MM/YYYY
+    // === CORREÇÃO BASEADA NO MANUAL V5 ===
+    // Manual Pag 15: "Data de início da viagem. Preencher no formato aaaa/mm/dd."
     const formatDateString = (str) => {
         if(!str) return "";
-        if(str.includes('/')) return str; // Já está formatado
+        if(str.includes('T')) str = str.split('T')[0]; // Remove time if present
+        
         if(str.includes('-')) {
             const [y, m, d] = str.split('-');
+            // Se já estiver no formato YYYY-MM-DD
+            if (y.length === 4) return `${y}/${m}/${d}`; // Manual pede AAAA/MM/DD
+            // Se estiver DD-MM-YYYY (menos provável vindo do input type date)
             return `${d}/${m}/${y}`;
         }
-        return str;
+        return str.replace(/-/g, '/');
     };
     
     const dtInicio = formatDateString(dates.start);
@@ -261,7 +262,6 @@ async function emitirCorisReal(data) {
     let innerContent = '';
     const soapAction = passengers.length === 1 ? 'InsereVoucherIndividualV13' : 'InsereVoucherFamiliarV13';
     
-    // Tratamento de destino
     const destinoCoris = data.destination || '4';
 
     if (passengers.length === 1) {
